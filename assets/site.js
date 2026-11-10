@@ -1,0 +1,303 @@
+/* FMF-AI: progressive navigation and accessible public-page interactions. */
+(()=>{
+'use strict';
+const scriptUrl=document.currentScript?.src||document.querySelector('script[data-site-root]')?.dataset.siteRoot||new URL('assets/site.js',location.href).href;
+const baseUrl=new URL('../',scriptUrl);
+const nav=document.getElementById('navigation-links');
+const toggle=document.querySelector('.menu-toggle');
+const contrastButton=document.querySelector('.contrast-toggle');
+let navController=null;
+
+// Resolve root-relative-to-site links once so internal navigation also works on /abstracts/*.html.
+for(const a of document.querySelectorAll('.nav-links a, .site-logo, .footer-links a')){
+  const h=a.getAttribute('href');if(h&&!/^(https?:|mailto:|tel:|#)/i.test(h))a.href=new URL(h,h.startsWith('../')?document.baseURI:baseUrl).href;
+}
+if(toggle&&nav)toggle.addEventListener('click',()=>{
+  const open=nav.classList.toggle('open');toggle.setAttribute('aria-expanded',String(open));
+});
+if(contrastButton){
+  const sync=()=>{
+    const on=document.documentElement.classList.contains('high-contrast');
+    contrastButton.setAttribute('aria-pressed',String(on));
+    contrastButton.setAttribute('aria-label',on?'Disable high-contrast view':'Enable high-contrast view');
+    contrastButton.title=on?'Standard view':'High-contrast view';
+  };
+  sync();
+  contrastButton.addEventListener('click',()=>{
+    const on=document.documentElement.classList.toggle('high-contrast');
+    try{localStorage.setItem('fmf-high-contrast',on?'on':'off')}catch(e){}
+    sync();
+  });
+}
+function initPage(){
+  initTabs();initAbstracts();initRegistration();initCsvExport();
+}
+function initTabs(){
+ const tabs=[...document.querySelectorAll('[role="tab"]')];if(!tabs.length)return;
+ const activate=i=>tabs.forEach((t,j)=>{
+   const selected=i===j;t.setAttribute('aria-selected',String(selected));t.tabIndex=selected?0:-1;
+   const panel=document.getElementById(t.getAttribute('aria-controls'));if(panel)panel.hidden=!selected;
+ });
+ tabs.forEach((t,i)=>{
+   t.addEventListener('click',()=>activate(i));
+   t.addEventListener('keydown',e=>{
+    const move=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;
+    if(move){e.preventDefault();const j=(i+move+tabs.length)%tabs.length;activate(j);tabs[j].focus();}
+   });
+ });
+}
+function initAbstracts(){
+ const list=document.getElementById('abstract-list'),search=document.getElementById('abstract-search'),sort=document.getElementById('abstract-sort');
+ if(!list||!search||!sort)return;
+ const count=document.getElementById('abstract-count'),empty=document.getElementById('abstract-no-results');
+ const entries=[...list.querySelectorAll('.abstract-entry')];
+ const collator=new Intl.Collator('en',{sensitivity:'base',numeric:true});
+ const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('en');
+ function update(){
+   const q=normalize(search.value.trim()),[by,order]=sort.value.split('-');
+   const arranged=[...entries].sort((a,b)=>{
+    const compare=collator.compare(a.dataset[by]||'',b.dataset[by]||'');
+    return (order==='desc'?-1:1)*compare;
+   });
+   arranged.forEach(entry=>{entry.hidden=Boolean(q)&&!normalize(`${entry.dataset.author} ${entry.dataset.title}`).includes(q);list.append(entry);});
+   const n=arranged.filter(x=>!x.hidden).length;
+   count.textContent=n?`${n} ${n===1?'abstract':'abstracts'}`:'No abstracts found';
+   empty.hidden=n>0||entries.length===0;
+   if(entries.length===0){count.textContent='No abstracts published yet.';empty.hidden=true;}
+ }
+ search.addEventListener('input',update);sort.addEventListener('change',update);update();
+}
+function initRegistration(){
+ const form=document.getElementById('registration-form');if(!form)return;
+ const cfg=window.FMFAI_CONFIG||{},endpoint=String(cfg.registrationEndpoint||'').trim();
+ const $=id=>document.getElementById(id),category=$('category'),presentation=$('presentation'),poster=$('poster');
+ const presentationMirror=$('presentation-mirror'),posterMirror=$('poster-mirror');
+ const overlay=$('review-overlay'),review=$('review-rows'),message=$('review-message'),status=$('form-status');
+ const confirm=$('confirm-registration'),close=$('close-review'),edit=$('edit-registration');
+ const testNote=$('registration-test-note'),testResult=$('test-save-result');
+ const TEST_KEY='fmf-ai-2027-registrations-test-v1';
+ let returnFocus=null,validationAttempted=false,errors=[];
+ const val=id=>String($(id)?.value||'').trim();
+ const invoiceValue=()=>form.querySelector('input[name="invoice"]:checked')?.value||'';
+ const isRegular=()=>category.value==='Regular participant'||category.value==='PhD student';
+ const isPosterOnly=()=>category.value==='Poster only';
+ const isCompanion=()=>category.value==='Accompanying person';
+ if(endpoint){form.action=endpoint;if(testNote)testNote.hidden=true;}
+ else {form.removeAttribute('action');if(testNote)testNote.hidden=false;}
+ function switchTitle(blockId,id,on){
+   const block=$(blockId),input=$(id);block.hidden=!on;input.disabled=!on;input.required=on;
+   if(!on){input.value='';input.setCustomValidity('');input.removeAttribute('aria-invalid');}
+ }
+ function sync(resetContributions=false){
+   if(resetContributions){presentation.checked=false;poster.checked=false;}
+   const regular=isRegular(),pOnly=isPosterOnly(),companion=isCompanion(),chosen=!!category.value;
+   $('contribution-block').hidden=!chosen||companion;
+   presentation.checked=regular;
+   presentation.disabled=true;
+   presentationMirror.disabled=!regular;
+   poster.disabled=!regular;
+   posterMirror.disabled=!pOnly;
+   if(pOnly)poster.checked=true;
+   if(companion||!chosen)poster.checked=false;
+   switchTitle('presentation-title-field','presentationTitle',regular);
+   switchTitle('poster-title-field','posterTitle',pOnly||(regular&&poster.checked));
+   $('category-rule').hidden=true;
+   const bill=invoiceValue()==='Yes';$('billing-fields').hidden=!bill;
+   for(const input of $('billing-fields').querySelectorAll('input,textarea')){
+     input.disabled=!bill;input.required=bill&&['billingName','billingAddress'].includes(input.id);
+     if(!bill){input.value='';input.setCustomValidity('');input.removeAttribute('aria-invalid');}
+   }
+ }
+ category.addEventListener('change',()=>sync(true));
+ poster.addEventListener('change',()=>sync(false));
+ for(const r of form.querySelectorAll('[name="invoice"]'))r.addEventListener('change',()=>sync(false));
+ sync(true);
+ function clearErrors(){
+   for(const e of form.querySelectorAll('input,select,textarea')){e.setCustomValidity('');e.removeAttribute('aria-invalid');}
+   for(const p of form.querySelectorAll('.field-error'))p.remove();
+   for(const id of ['contribution-error','invoice-error']){$(id).hidden=true;$(id).textContent='';}
+   status.textContent='';status.classList.remove('error-status');
+ }
+ function setError(input,text){
+   errors.push({input,text});input.setCustomValidity(text);input.setAttribute('aria-invalid','true');
+   const parent=input.closest('.field');if(parent){const p=document.createElement('p');p.className='field-error';p.textContent=text;parent.append(p);}
+ }
+ function groupError(id,text,input){errors.push({input,text});$(id).hidden=false;$(id).textContent=text;}
+ function validate(focusFirst){
+   clearErrors();errors=[];
+   for(const [id,label] of [['firstName','first name'],['familyName','family name'],['email','email address'],['institution','institution']]){
+     if(!val(id))setError($(id),`Please enter your ${label}.`);
+   }
+   if(val('email')&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val('email'))){setError($('email'),'Please enter a valid email address.');}
+   if(!category.value)setError(category,'Please select a registration category.');
+   if(isRegular()){
+     if(!val('presentationTitle'))setError($('presentationTitle'),'Please enter the title of your presentation.');
+     if(poster.checked&&!val('posterTitle'))setError($('posterTitle'),'Please enter the title of your poster.');
+   } else if(isPosterOnly()){
+     if(!val('posterTitle'))setError($('posterTitle'),'Please enter the title of your poster.');
+   }
+   if(!invoiceValue())groupError('invoice-error','Please indicate whether you require an invoice.',form.querySelector('[name="invoice"]'));
+   if(invoiceValue()==='Yes'){
+     if(!val('billingName'))setError($('billingName'),'Please enter the invoice recipient.');
+     if(!val('billingAddress'))setError($('billingAddress'),'Please enter the billing address.');
+   }
+   if(errors.length){
+     status.textContent='Please correct the highlighted fields before continuing.';status.classList.add('error-status');
+     if(focusFirst){errors[0].input.focus();errors[0].input.scrollIntoView({behavior:'smooth',block:'center'});}
+     return false;
+   }
+   return true;
+ }
+ form.addEventListener('input',()=>{if(validationAttempted)validate(false);});
+ form.addEventListener('change',()=>{if(validationAttempted)validate(false);});
+ function row(label,text){
+   const div=document.createElement('div');div.className='review-item';
+   const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=text||'—';div.append(dt,dd);review.append(div);
+ }
+ function currentRecord(){
+   const regular=isRegular(),pOnly=isPosterOnly();
+   return {
+     requestId:val('requestId'),firstName:val('firstName'),familyName:val('familyName'),email:val('email'),institution:val('institution'),
+     category:category.value,presentation:regular?'Yes':'No',presentationTitle:regular?val('presentationTitle'):'',
+     poster:(pOnly||regular&&poster.checked)?'Yes':'No',posterTitle:(pOnly||regular&&poster.checked)?val('posterTitle'):'',
+     invoice:invoiceValue(),billingName:invoiceValue()==='Yes'?val('billingName'):'',
+     billingAddress:invoiceValue()==='Yes'?val('billingAddress'):'',taxNumber:invoiceValue()==='Yes'?val('taxNumber'):'',
+     dietary:val('dietary'),comments:val('comments')
+   };
+ }
+ function openReview(){
+   returnFocus=document.activeElement;review.replaceChildren();message.textContent='';
+   const r=currentRecord();
+   row('Name',r.firstName+' '+r.familyName);row('Email',r.email);row('Institution',r.institution);
+   row('Registration category',category.options[category.selectedIndex].textContent);
+   if(r.presentation==='Yes')row('Presentation title',r.presentationTitle);
+   if(r.poster==='Yes')row('Poster title',r.posterTitle);
+   row('Invoice requested',r.invoice);
+   if(r.invoice==='Yes'){
+     row('Invoice recipient',r.billingName);row('Billing address',r.billingAddress);
+     if(r.taxNumber)row('Tax / VAT number',r.taxNumber);
+   }
+   if(r.dietary)row('Dietary requirements',r.dietary);
+   if(r.comments)row('Additional comments',r.comments);
+   overlay.hidden=false;document.body.classList.add('dialog-open');close.focus();
+ }
+ function hideReview(){overlay.hidden=true;document.body.classList.remove('dialog-open');returnFocus?.focus();}
+ form.addEventListener('submit',e=>{e.preventDefault();validationAttempted=true;if(validate(true))openReview();});
+ close.addEventListener('click',hideReview);edit.addEventListener('click',hideReview);
+ overlay.addEventListener('click',e=>{if(e.target===overlay)hideReview();});
+ overlay.addEventListener('keydown',e=>{
+   if(e.key==='Escape'){hideReview();return;}
+   if(e.key==='Tab'){
+     const buttons=[...overlay.querySelectorAll('button:not([disabled])')],first=buttons[0],last=buttons[buttons.length-1];
+     if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+     else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+   }
+ });
+ function getSaved(){try {return JSON.parse(localStorage.getItem(TEST_KEY)||'[]');}catch(e){return [];}}
+ function storeTest(r){
+   const stored=getSaved();if(!stored.some(s=>s.requestId===r.requestId))stored.push({...r,timestamp:new Date().toISOString()});
+   localStorage.setItem(TEST_KEY,JSON.stringify(stored));
+ }
+ function exportCsv(){
+   const keys=[['timestamp','Timestamp'],['requestId','Request ID'],['firstName','First name'],['familyName','Family name'],['email','Email'],['institution','Institution'],['category','Category'],['presentation','Presentation'],['presentationTitle','Presentation title'],['poster','Poster'],['posterTitle','Poster title'],['invoice','Invoice required'],['billingName','Billing name'],['billingAddress','Billing address'],['taxNumber','Tax / VAT number'],['dietary','Dietary requirements'],['comments','Additional comments']];
+   const safeCsv=x=>{
+     let s=String(x??'');
+     if(/^[\s\u0000-\u001f]*[=+\-@]/.test(s))s="'"+s;
+     return '"'+s.replace(/"/g,'""')+'"';
+   };
+   const records=getSaved(),lines=[keys.map(k=>safeCsv(k[1])).join(',')];
+   records.forEach(r=>lines.push(keys.map(k=>safeCsv(r[k[0]])).join(',')));
+   const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
+   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='fmf-ai-2027-test-registrations.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),400);
+ }
+ $('download-test-csv')?.addEventListener('click',exportCsv);
+ $('new-test-registration')?.addEventListener('click',()=>{
+   form.reset();$('requestId').value='';sync(true);testResult.hidden=true;status.textContent='';validationAttempted=false;
+   for(const p of form.querySelectorAll('.field-error'))p.remove();
+   form.querySelector('#firstName').focus();
+ });
+ confirm.addEventListener('click',()=>{
+   if(!validate(false)){hideReview();status.textContent='Please correct the highlighted fields.';return;}
+   if(!$('requestId').value)$('requestId').value=globalThis.crypto?.randomUUID?.()||`fmf-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+   confirm.disabled=true;
+   if(!endpoint){
+     try{
+       storeTest(currentRecord());hideReview();testResult.hidden=false;
+       status.textContent='Test registration submitted successfully.';
+       testResult.scrollIntoView({behavior:'smooth',block:'nearest'});
+     }catch(e){message.textContent='This browser cannot save local test registrations. Check private browsing or storage settings.';}
+     finally{confirm.disabled=false;}
+     return;
+   }
+   hideReview();
+   status.textContent='Your registration will be processed in the newly opened tab. Please check the result there.';
+   HTMLFormElement.prototype.submit.call(form);
+   setTimeout(()=>{confirm.disabled=false;},3000);
+ });
+}
+
+
+function initCsvExport(){
+ const form=document.getElementById('csv-export-form');if(!form)return;
+ form.addEventListener('submit',e=>{
+   e.preventDefault();const raw=document.getElementById('sheet-reference').value.trim();
+   const gid=document.getElementById('sheet-tab-gid').value.trim()||'0';
+   let id=raw;
+   const match=raw.match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)(?:\/|$)/);
+   if(raw.startsWith('http'))id=match?.[1]||'';
+   const message=document.getElementById('csv-message');
+   if(!/^[a-zA-Z0-9_-]{20,}$/.test(id)||!/^\d+$/.test(gid)){
+     message.textContent='Please enter a valid Google spreadsheet ID (or URL) and numeric tab ID.';return;
+   }
+   message.textContent='The export opens in a new tab. Google will verify your access.';
+   window.open(`https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/export?format=csv&gid=${encodeURIComponent(gid)}`,'_blank','noopener,noreferrer');
+ });
+}
+
+// Fast navigation swaps only the content panel; the header/menu/footer stay mounted.
+// Normal links remain the fallback when JavaScript is unavailable or fetch fails.
+const ajaxSupported=/^https?:$/.test(location.protocol);
+function activeNav(url){
+  if(!nav)return;
+  const path=new URL(url).pathname;
+  for(const a of nav.querySelectorAll('a')){
+    const selected=new URL(a.href).pathname===path;
+    if(selected)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
+  }
+  nav.classList.remove('open');toggle?.setAttribute('aria-expanded','false');
+}
+async function navigate(url,push=true){
+  if(!ajaxSupported)return false;
+  if(navController)navController.abort();navController=new AbortController();
+  try{
+    const response=await fetch(url,{signal:navController.signal,credentials:'same-origin'});
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    const source=await response.text(),doc=new DOMParser().parseFromString(source,'text/html');
+    const main=doc.querySelector('main'),old=document.querySelector('main');
+    if(!main||!old)throw new Error('Main panel missing');
+    // Resolve links against the fetched page, important on nested abstract pages.
+    for(const a of main.querySelectorAll('a[href]')){
+      const h=a.getAttribute('href');if(!/^([a-z]+:|#)/i.test(h))a.href=new URL(h,url).href;
+    }
+    old.replaceWith(main);
+    document.title=doc.title;
+    activeNav(url);
+    if(push)history.pushState({page:url},'',url);
+    window.scrollTo({top:0,behavior:'instant'});
+    initPage();return true;
+  }catch(error){
+    if(error.name==='AbortError')return false;
+    console.warn('Falling back to ordinary navigation:',error.message);
+    location.assign(url);return false;
+  }
+}
+document.addEventListener('click',e=>{
+  const a=e.target.closest('a[href]');if(!a||e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.altKey||e.shiftKey)return;
+  if(a.hasAttribute('download')||a.target&&a.target!=='_self')return;
+  const u=new URL(a.href,location.href);
+  if(!ajaxSupported||u.origin!==location.origin||!u.pathname.endsWith('.html')||!u.pathname.startsWith(baseUrl.pathname)||/\/abstracts\/[^/]+\.html$/.test(u.pathname))return;
+  e.preventDefault();navigate(u.href);
+});
+window.addEventListener('popstate',()=>navigate(location.href,false));
+initPage();
+})();

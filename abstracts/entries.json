@@ -1,0 +1,10 @@
+[
+  {
+    "slug": "example",
+    "kind": "example",
+    "title": "An illustrative abstract with mathematical notation",
+    "authors": "Example Author",
+    "institution": "Sample Institution",
+    "source": "example.tex"
+  }
+]
