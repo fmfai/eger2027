@@ -5,29 +5,64 @@ const scriptUrl=document.currentScript?.src||document.querySelector('script[data
 const baseUrl=new URL('../',scriptUrl);
 const nav=document.getElementById('navigation-links');
 const toggle=document.querySelector('.menu-toggle');
-const contrastButton=document.querySelector('.contrast-toggle');
+const contrastButtons=[...document.querySelectorAll('.contrast-toggle')];
+const scrim=document.querySelector('.sidebar-scrim');
+const sidebar=document.getElementById('site-sidebar');
 let navController=null;
 
 // Resolve root-relative-to-site links once so internal navigation also works on /abstracts/*.html.
-for(const a of document.querySelectorAll('.nav-links a, .site-logo, .footer-links a')){
+for(const a of document.querySelectorAll('.nav-links a, .site-logo, .mobile-brand, .footer-links a')){
   const h=a.getAttribute('href');if(h&&!/^(https?:|mailto:|tel:|#)/i.test(h))a.href=new URL(h,h.startsWith('../')?document.baseURI:baseUrl).href;
 }
-if(toggle&&nav)toggle.addEventListener('click',()=>{
-  const open=nav.classList.toggle('open');toggle.setAttribute('aria-expanded',String(open));
-});
-if(contrastButton){
-  const sync=()=>{
-    const on=document.documentElement.classList.contains('high-contrast');
-    contrastButton.setAttribute('aria-pressed',String(on));
-    contrastButton.setAttribute('aria-label',on?'Disable high-contrast view':'Enable high-contrast view');
-    contrastButton.title=on?'Standard view':'High-contrast view';
-  };
-  sync();
-  contrastButton.addEventListener('click',()=>{
-    const on=document.documentElement.classList.toggle('high-contrast');
-    try{localStorage.setItem('fmf-high-contrast',on?'on':'off')}catch(e){}
-    sync();
-  });
+function syncSidebarInert(){
+ if(sidebar)sidebar.inert=window.innerWidth<=960&&!document.body.classList.contains('sidebar-open');
+}
+function closeSidebar(restoreFocus=false){
+ const open=document.body.classList.contains('sidebar-open');
+ document.body.classList.remove('sidebar-open');
+ toggle?.setAttribute('aria-expanded','false');
+ toggle?.setAttribute('aria-label','Open navigation menu');
+ syncSidebarInert();
+ if(open&&restoreFocus)toggle?.focus();
+}
+if(toggle&&sidebar){
+ toggle.addEventListener('click',()=>{
+   const open=document.body.classList.toggle('sidebar-open');
+   toggle.setAttribute('aria-expanded',String(open));
+   toggle.setAttribute('aria-label',open?'Close navigation menu':'Open navigation menu');
+   syncSidebarInert();
+   if(open)sidebar.querySelector('.nav-links a')?.focus();
+ });
+ scrim?.addEventListener('click',()=>closeSidebar(true));
+ document.addEventListener('keydown',e=>{
+   if(!document.body.classList.contains('sidebar-open'))return;
+   if(e.key==='Escape'){closeSidebar(true);return;}
+   if(e.key==='Tab'){
+     const focusable=[...sidebar.querySelectorAll('a[href],button:not([disabled])')];
+     if(!focusable.length)return;
+     const first=focusable[0],last=focusable[focusable.length-1];
+     if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+     else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+   }
+ });
+ window.addEventListener('resize',()=>{if(window.innerWidth>960)closeSidebar();syncSidebarInert()});
+ syncSidebarInert();
+}
+if(contrastButtons.length){
+ const sync=()=>{
+   const on=document.documentElement.classList.contains('high-contrast');
+   for(const button of contrastButtons){
+     button.setAttribute('aria-pressed',String(on));
+     button.setAttribute('aria-label',on?'Disable high-contrast view':'Enable high-contrast view');
+     button.title=on?'Standard view':'High-contrast view';
+   }
+ };
+ sync();
+ for(const button of contrastButtons)button.addEventListener('click',()=>{
+   const on=document.documentElement.classList.toggle('high-contrast');
+   try{localStorage.setItem('fmf-high-contrast',on?'on':'off')}catch(e){}
+   sync();
+ });
 }
 function initPage(){
   initTabs();initAbstracts();initRegistration();initCsvExport();
@@ -264,7 +299,7 @@ function activeNav(url){
     const selected=new URL(a.href).pathname===path;
     if(selected)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
   }
-  nav.classList.remove('open');toggle?.setAttribute('aria-expanded','false');
+  closeSidebar();
 }
 async function navigate(url,push=true){
   if(!ajaxSupported)return false;
