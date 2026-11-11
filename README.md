@@ -1,32 +1,33 @@
-# FMF-AI 2027 Conference Website — v6
+# FMF–AI 2027 — website, version 7.1 (three-dot contrast icon)
 
-This is a static, responsive website designed for GitHub Pages. The header remains in place during internal page navigation. It includes the conference program, searchable LaTeX-generated abstracts, registration and a high-contrast theme.
+This archive is a static, GitHub Pages–compatible conference website. Upload **the files and folders inside the archive to the repository root**, including `.github` and `.nojekyll`. It replaces version 6; don't upload the ZIP itself as the website.
 
-## Test the registration now
+## What's changed in v7
 
-Open `registration.html` from the deployed website, or run the website on a local web server (for example, `python -m http.server 8000`). The default **test mode** works without Google setup: complete the form, choose **Review Registration**, then **Submit Registration**. The result is saved to **this browser's localStorage**, not to GitHub or a shared server. Use **Download test CSV** after a test submission. Do **not** use real participant personal information in test mode; test data are device-local and can be cleared with browser site data. This is an end-to-end user-interface test, **not live conference registration**.
+- Persistent left-hand navigation on desktops, in the spirit of the Processing teaching website. A compact menu button opens an accessible, dismissible sidebar on mobile/tablet devices (960px and below).
+- Less wasted space: the reading area is centered in the space remaining beside the sidebar. Tables and schedules have more usable width, while paragraphs stay readable.
+- Modern typography: **Outfit** for headings and **Source Sans 3** for body text, each with system-font fallbacks. These fonts are loaded through Google Fonts when online.
+- New restrained colours: warm off-white background, grey-blue navigation, teal links and a subtle copper highlight. Headings are slightly darker than body text.
+- The high-contrast black/yellow mode is retained, with a toggle both in the desktop sidebar and in the mobile bar.
+- Menu transitions continue to swap only the main content on a deployed site, without reloading the sidebar and masthead.
+- All existing content and functional areas are preserved (registration form, review dialog, abstract search/sort, programme tabs, template ZIP, admin CSV export link).
 
-## Enable real registration
+## Registration
 
-For conference use, create a **private** Google Sheet, deploy the `backend/Code.gs` Google Apps Script as described in `backend/SETUP.md`, and set the deployed `/exec` URL in `assets/settings.js` under `registrationEndpoint`. When the endpoint is configured, the browser posts to the private Sheet and does not use browser-local test saving. The organizer must verify the endpoint with fictional submissions and protect the sheet. Never place a credential or the CSV of registration details into the public GitHub Pages repository.
+The bundled site is **in local test mode by default**. It saves fictional test submissions in the current browser only and can export a test CSV. It is **not a shared registration database**. Avoid actual attendee personal data until the live backend is configured.
 
-## Categories
+To enable live registration, create a private Google Sheet and deploy `backend/Code.gs` as described in `backend/SETUP.md`. Paste the resulting `/exec` URL into `assets/settings.js`. Verify with fictional entries first. Never commit attendee CSV files or secrets to the public GitHub Pages repository.
 
-- Regular participant: 300 EUR — presentation required; optional poster with no additional charge.
-- PhD student: 200 EUR — presentation required; optional poster with no additional charge.
-- Poster only: 200 EUR — poster required, presentation forbidden. The 200 EUR amount follows the previous draft; confirm it before publishing.
-- Accompanying person: 100 EUR — no contribution.
+Categories preserved from v6: Regular (300 EUR), PhD (200 EUR), Poster Only (provisionally 200 EUR), and Accompanying Person (100 EUR). The poster-only rate requires organizer confirmation.
 
-Presentation title and poster title are separate fields. An invoice adds recipient and billing address. All validation messages are in English. All categories are revalidated in Apps Script.
+## Abstracts
 
-## Other assets
+The `abstracts/entries.json` file and `scripts/build_abstracts.py` script produce searchable/sortable listings and individual detail pages from trusted LaTeX inputs using Pandoc, including the new sidebar layout. GitHub Actions rebuilds them after changes. A downloadable LaTeX template is under `downloads/`.
 
-- `abstracts/entries.json` and `scripts/build_abstracts.py`: searchable abstract list and generated detail pages (Pandoc used by GitHub Actions).
-- `downloads/FMF-AI-2027-abstract-template.zip`: downloadable LaTeX template.
-- `organizer.html`: private Google Sheet CSV export helper (access to the Sheet still required).
+## Dates requiring correction before publication
 
-The footer's previous navigation links have been removed. Existing URLs such as `organizer.html` and `privacy.html` remain directly accessible if organizers need them.
+The dates retained from the previous version are **Notification of Acceptance: 1 January 2026** and **Registration Opens: 5 January 2026**. Both predate the abstract deadline of 15 December 2026; confirm the intended years before publishing.
 
-## Important date issue
+## Version 7.1 icon update
 
-Notification of Acceptance and Registration Opens are currently **1 January 2026** and **5 January 2026** after the earlier instructed swap. Both predate the December 2026 abstract deadline. Correct them before going live.
+The high-contrast toggle now uses the familiar yellow circle with three black dots on desktop and mobile. The button retains its English accessible name (`Enable high-contrast view` / `Disable high-contrast view`) and keyboard support. The symbol itself is not an internationally recognized web-accessibility standard; the readable label is essential.
