@@ -604,3 +604,139 @@ a:hover { color:#b36d43; }
 :root.high-contrast .mobile-topbar .contrast-toggle {background:transparent!important;border-color:transparent!important;}
 :root.high-contrast .sidebar-accessibility .contrast-toggle:hover,
 :root.high-contrast .mobile-topbar .contrast-toggle:hover {border-color:#fff600!important;}
+
+
+/* v7.2: fuller reading width, stronger masthead, justified prose, less empty space */
+:root:not(.high-contrast) {
+  --ink:#213b52;
+  --quiet:#4a6075;
+  --muted:#66798a;
+  --line:#d1dce7;
+  --paper:#f6f8fb;
+  --surface:#edf2f7;
+  --nav:#e4ebf2;
+  --blue:#2f6e9f;
+  --blue-dark:#245882;
+  --gold:#cb8a53;
+}
+:root { --sidebar-width: 262px; --content-width: 1260px; }
+body {color:var(--quiet); background:var(--paper);}
+.container,.footer-row { width:min(calc(100% - 56px), var(--content-width)); }
+.site-sidebar { background:#e6ecf0; border-right:1px solid #cfd8df; }
+.sidebar-brand { padding:36px 20px 24px; }
+.site-sidebar .nav-inner { padding:22px 12px; }
+.site-sidebar .nav-links { gap:0; }
+.site-sidebar .nav-links a,
+.site-sidebar .nav-links a:hover,
+.site-sidebar .nav-links a[aria-current='page'] {
+  border-radius:0; min-height:46px; padding:12px 14px; border-bottom:1px solid #d5dde4;
+}
+.site-sidebar .nav-links a:last-child { border-bottom:0; }
+.site-sidebar .nav-links a { color:#35556d; background:transparent; }
+.site-sidebar .nav-links a:hover { background:#d9e4ec; color:#173e5a; }
+.site-sidebar .nav-links a[aria-current='page'],
+.site-sidebar .nav-links a[aria-current='page']:hover { background:#2c5d86; color:#fff; }
+.site-head { background:linear-gradient(180deg,#eef3f8 0%,#f7f9fc 100%); border-bottom:1px solid #d6e0ea; }
+.site-head:before { height:5px; background:linear-gradient(90deg,#2e729f 0%,#5f9eb1 54%,#ca8c57 100%); }
+.head-inner {
+  display:grid; grid-template-columns: 170px minmax(0,1.55fr) minmax(220px,.75fr); align-items:center;
+  gap:26px; min-height:0; padding-block:28px 26px;
+}
+.header-logo { display:flex; align-items:center; }
+.header-logo img { display:block; width:100%; max-width:160px; height:auto; mix-blend-mode:multiply; }
+.conference-id { max-width:none; }
+.conference-title {
+  max-width:none; margin:0; color:#163754;
+  font:700 clamp(1.82rem,2.45vw,2.72rem)/1.16 'Outfit','Segoe UI',sans-serif;
+  letter-spacing:-.036em;
+}
+.meeting-meta.meeting-meta-side {
+  display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:12px; margin-top:0;
+  color:#274963; text-align:right;
+}
+.meeting-meta-side .meta-item { display:flex; flex-direction:column; gap:2px; }
+.meeting-meta-side .meta-item::before { content:none; }
+.meeting-meta-side .meta-label {
+  font:700 .8rem/1.2 'Source Sans 3',sans-serif; letter-spacing:.09em; text-transform:uppercase; color:#7a8fa3;
+}
+.meeting-meta-side .meta-value {
+  font:700 1.08rem/1.25 'Source Sans 3',sans-serif; color:#264d69;
+}
+.main.container { max-width:var(--content-width); padding-block:42px 82px; }
+.page-title {
+  color:#163d5e; font:700 clamp(2.12rem,3vw,2.9rem)/1.16 'Outfit','Segoe UI',sans-serif; margin:0 0 28px;
+}
+.page-title:after { width:54px; margin-top:16px; background:#cf8b55; }
+.main h2 { color:#1d4968; font-size:1.44rem; margin-top:40px; }
+.main h3 { color:#1e4a68; }
+.main p { margin-bottom:18px; text-align:justify; text-justify:inter-word; max-width:none; }
+.lead { font-size:1.14rem; line-height:1.8; color:#39546a; }
+.main > p:not(.subtle-note), .main .lead { max-width:none; }
+.main strong { color:#153a58; font-weight:700; }
+.columns { gap:20px 76px; }
+.simple-list { padding-left:24px; }
+.simple-table th,.simple-table td { padding:14px 16px; }
+.simple-table th { width:64%; }
+.schedule-links { margin-top:24px; }
+.site-footer { background:#eef3f8; }
+.footer-row { width:min(calc(100% - 56px), var(--content-width)); }
+@media (max-width: 1180px) {
+  :root { --content-width: 1160px; }
+  .head-inner { grid-template-columns: 145px minmax(0,1.45fr) minmax(210px,.7fr); gap:22px; }
+  .conference-title { font-size:clamp(1.68rem,2.35vw,2.3rem); }
+}
+@media (max-width: 960px) {
+  .container,.footer-row { width:min(calc(100% - 40px), var(--content-width)); }
+  .head-inner { grid-template-columns: 110px 1fr; grid-template-areas: 'logo title' 'meta meta'; gap:14px 18px; padding-block:23px 22px; }
+  .header-logo { grid-area:logo; }
+  .conference-id { grid-area:title; }
+  .meeting-meta.meeting-meta-side { grid-area:meta; align-items:flex-start; text-align:left; gap:8px; }
+  .meeting-meta-side .meta-item { flex-direction:row; gap:8px; align-items:baseline; }
+  .meeting-meta-side .meta-label { min-width:auto; }
+  .main.container { padding-block:34px 68px; }
+}
+@media (max-width: 600px) {
+  .container,.footer-row { width:calc(100% - 28px); }
+  .head-inner { grid-template-columns: 1fr; grid-template-areas: 'logo' 'title' 'meta'; gap:12px; }
+  .header-logo img { max-width:132px; }
+  .conference-title { font-size:1.58rem; }
+  .meeting-meta.meeting-meta-side { gap:6px; }
+  .meeting-meta-side .meta-item { flex-direction:column; gap:2px; }
+  .meeting-meta-side .meta-value { font-size:1rem; }
+  .main p { text-align:left; }
+  .columns { gap:6px 0; }
+}
+:root.high-contrast .meeting-meta-side .meta-label,
+:root.high-contrast .meeting-meta-side .meta-value,
+:root.high-contrast .conference-title,
+:root.high-contrast .main strong { color:#fff600 !important; }
+
+
+/* v7.3: simpler right-aligned date/location block without labels */
+.meeting-meta.meeting-meta-side {
+  align-items:flex-end;
+  text-align:right;
+  gap:10px;
+}
+.meeting-meta-side .meta-item {
+  display:block;
+}
+.meeting-meta-side .meta-label {
+  display:none !important;
+}
+.meeting-meta-side .meta-value {
+  display:block;
+  font:800 clamp(1.12rem,1.38vw,1.38rem)/1.18 'Outfit','Segoe UI',sans-serif;
+  color:#244a67;
+  letter-spacing:-.015em;
+}
+@media (max-width: 960px) {
+  .meeting-meta.meeting-meta-side { align-items:flex-start; text-align:left; gap:8px; }
+  .meeting-meta-side .meta-item { display:block; }
+  .meeting-meta-side .meta-value { font-size:1.06rem; }
+}
+@media (max-width: 600px) {
+  .meeting-meta.meeting-meta-side { align-items:flex-start; text-align:left; }
+  .meeting-meta-side .meta-value { font-size:1rem; }
+}
+:root.high-contrast .meeting-meta-side .meta-value { color:#fff600 !important; }
