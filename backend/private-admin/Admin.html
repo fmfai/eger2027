@@ -1,0 +1,91 @@
+<!doctype html><html lang="en"><head><base target="_top"><meta charset="utf-8">
+<style>
+:root{--ink:#20384d;--muted:#526c7c;--line:#d4dee6;--blue:#23648e;--bg:#f6f8fa;--surface:#fff}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Arial,Helvetica,sans-serif}
+a{color:#155d91}button,input{font:inherit}button{cursor:pointer} .wrap{max-width:1420px;margin:auto;padding:30px 24px 75px}
+.header{display:flex;justify-content:space-between;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:24px}
+h1{font-size:clamp(1.5rem,2.5vw,2rem);line-height:1.2;margin:0 0 5px}p{margin:0;color:var(--muted)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;background:var(--blue);color:white;border:1px solid var(--blue);border-radius:5px;text-decoration:none;padding:10px 15px;font-weight:700;min-height:43px}
+.btn:hover{background:#174968;color:white}.btn.alt{background:white;color:var(--ink);border-color:#b7cad8}.btn.alt:hover{background:#e9f0f5}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-bottom:22px}
+.metric{background:white;border:1px solid var(--line);padding:18px 22px;min-height:97px}
+.metric strong{display:block;font-size:1.8rem;line-height:1.1;color:#174f73}.metric span{display:block;font-size:.88rem;color:var(--muted);margin-top:8px}
+.toolbar{display:flex;gap:16px;align-items:end;flex-wrap:wrap;margin-bottom:15px}
+.search{flex:1 1 320px}.search label{display:block;font-weight:700;margin-bottom:6px}
+.search input,.toolbar select{width:100%;max-width:540px;border:1px solid #aebfcb;background:white;padding:11px;border-radius:4px;min-height:44px}
+.sort-control{display:flex;flex-direction:column;gap:6px;font-weight:700}.sort-control select{min-width:180px}
+#state{margin:12px 0;color:var(--muted)} .table-wrap{background:#fff;border:1px solid var(--line);overflow:auto;max-width:100%}
+table{width:100%;border-collapse:collapse;min-width:1010px;text-align:left;font-size:.935rem}
+th{position:sticky;top:0;background:#e7eff5;color:#1b4765;padding:13px 12px;border-bottom:1px solid #c5d7e5;white-space:nowrap}
+td{padding:12px;border-bottom:1px solid #e0e7ed;vertical-align:top}tr:nth-child(even){background:#fafcfd}
+.tag{display:inline-block;font-size:.78rem;padding:3px 7px;border:1px solid #d1dee6;background:#f3f7fa;border-radius:3px;color:#375c73}
+.detail-btn{color:#155f89;border:1px solid #b6cbd8;border-radius:3px;background:white;padding:6px 10px}
+.detail-btn:hover{background:#e7eff5}.email{word-break:break-all}
+.dialog{border:1px solid #b7c8d7;max-width:760px;width:calc(100% - 28px);padding:25px;background:white;color:var(--ink)}
+.dialog::backdrop{background:#102b3db5}.dialog-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:15px}
+.dialog h2{margin:0;font-size:1.35rem}.detail-list{display:grid;grid-template-columns:minmax(130px,185px) minmax(0,1fr);gap:0 15px}
+.detail-list dt,.detail-list dd{margin:0;padding:10px 0;border-bottom:1px solid #e1e7ed;overflow-wrap:anywhere}
+.detail-list dt{color:var(--muted);font-weight:700}.detail-list dd{white-space:pre-wrap}
+.note{margin-top:18px;font-size:.88rem}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #d18e56;outline-offset:2px}
+@media(max-width:750px){.wrap{padding:22px 13px 50px}.summary{grid-template-columns:1fr}.header{align-items:start}.detail-list{grid-template-columns:1fr}.detail-list dt{border-bottom:0;padding-bottom:0}.detail-list dd{padding-top:2px}.toolbar{gap:10px}}
+</style></head><body>
+<main class="wrap">
+<header class="header"><div><h1>FMF-AI 2027 · Registration Dashboard</h1><p>Private organizer access · Live spreadsheet data</p></div>
+<div class="actions"><button class="btn alt" id="refresh" type="button">Refresh</button><a class="btn" id="excel" href="#" target="_blank" rel="noopener" hidden>Download Excel (.xlsx)</a><a class="btn alt" id="sheet" href="#" target="_blank" rel="noopener" hidden>Open Google Sheets</a></div></header>
+<div class="summary"><div class="metric"><strong id="total">—</strong><span>Total registrations</span></div><div class="metric"><strong id="visible">—</strong><span>Matching registrations</span></div><div class="metric"><strong id="updated">—</strong><span>Last refreshed</span></div></div>
+<div class="toolbar"><div class="search"><label for="search">Search registrations</label><input id="search" placeholder="Name, email, institution, presentation or poster" type="search" autocomplete="off"></div>
+<label class="sort-control" for="sort">Sort by<select id="sort"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="name">Family name (A–Z)</option><option value="category">Category (A–Z)</option></select></label></div>
+<p aria-live="polite" id="state">Loading registrations…</p>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Institution</th><th>Category</th><th>Presentation</th><th>Poster</th><th>Invoice</th><th></th></tr></thead><tbody id="records"></tbody></table></div>
+<p class="note">The spreadsheet is private. To export all registrations, select “Download Excel (.xlsx)”. Only open this dashboard while signed in with the authorized Google account.</p>
+</main>
+<dialog class="dialog" id="details"><div class="dialog-top"><h2>Registration details</h2><button type="button" class="btn alt" id="close">Close</button></div><dl class="detail-list" id="full-details"></dl></dialog>
+<script>
+(()=>{
+ 'use strict';
+ const $=id=>document.getElementById(id);
+ const labelKeys=['Timestamp','Request ID','First name','Family name','Email','Institution','Category','Presentation','Presentation title','Poster','Poster title','Invoice required','Billing name','Billing address','Tax/VAT number','Dietary requirements','Additional comments'];
+ let rows=[];let headers=labelKeys;
+ function cell(text,cls){const td=document.createElement('td');td.textContent=String(text||'');if(cls)td.className=cls;return td;}
+ function render(){
+   const term=$('search').value.trim().toLocaleLowerCase(),order=$('sort').value;
+   const matches=rows.map((r,i)=>({r,i})).filter(o=>!term||o.r.join(' ').toLocaleLowerCase().includes(term));
+   if(order==='oldest')matches.sort((a,b)=>b.i-a.i);
+   else if(order==='name')matches.sort((a,b)=>(a.r[3]+' '+a.r[2]).localeCompare(b.r[3]+' '+b.r[2]));
+   else if(order==='category')matches.sort((a,b)=>a.r[6].localeCompare(b.r[6]));
+   else matches.sort((a,b)=>a.i-b.i);
+   const body=$('records');body.replaceChildren();
+   matches.forEach(({r,i})=>{
+     const tr=document.createElement('tr');
+     [r[0],r[2]+' '+r[3],r[4],r[5],r[6],r[8]||'—',r[10]||'—',r[11]].forEach((v,j)=>tr.append(cell(v,j===2?'email':'')));
+     const td=document.createElement('td'),btn=document.createElement('button');btn.type='button';btn.className='detail-btn';btn.textContent='Details';btn.setAttribute('aria-label','View registration of '+r[2]+' '+r[3]);btn.addEventListener('click',()=>showDetails(rows[i]));td.append(btn);tr.append(td);body.append(tr);
+   });
+   $('visible').textContent=String(matches.length);
+   if(rows.length&&!matches.length)$('state').textContent='No matching registrations.';
+   else if(rows.length)$('state').textContent=matches.length+' registration(s) displayed.';
+   else $('state').textContent='No registrations yet.';
+ }
+ function showDetails(r){
+   const dl=$('full-details');dl.replaceChildren();
+   headers.forEach((label,i)=>{const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=String(r[i]||'—');dl.append(dt,dd)});
+   $('details').showModal();
+ }
+ function onSuccess(res){
+   rows=Array.isArray(res.rows)?res.rows:[];headers=Array.isArray(res.headers)?res.headers:labelKeys;
+   $('total').textContent=String(res.total||0);$('updated').textContent=new Date(res.generatedAt).toLocaleString();
+   for(const [id,url] of [['excel',res.excelUrl],['sheet',res.sheetUrl]]){
+     if(/^https:\/\/docs\.google\.com\/spreadsheets\/d\//.test(url||'')){$(id).href=url;$(id).hidden=false;}
+   }
+   render();
+   if(res.total>res.displayed)$('state').textContent+=' The latest '+res.displayed+' entries are shown; the Excel file contains all entries.';
+ }
+ function onError(err){$('state').textContent='Unable to load registrations: '+(err?.message||'Unknown error');}
+ function load(){ $('state').textContent='Loading registrations…';$('refresh').disabled=true;
+   google.script.run.withSuccessHandler(res=>{ $('refresh').disabled=false;onSuccess(res); })
+     .withFailureHandler(err=>{ $('refresh').disabled=false;onError(err); }).dashboardData(); }
+ $('search').addEventListener('input',render);$('sort').addEventListener('change',render);
+ $('refresh').addEventListener('click',load);$('close').addEventListener('click',()=>$('details').close());
+ load();
+})();
+</script></body></html>

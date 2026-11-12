@@ -245,8 +245,9 @@ function initRegistration(){
    if(!$('requestId').value)$('requestId').value=globalThis.crypto?.randomUUID?.()||`fmf-${Date.now()}-${Math.random().toString(36).slice(2)}`;
    confirm.disabled=true;
    hideReview();
-   status.textContent='Your submission is opening in a new tab. Check that tab for the confirmation message.';
-   // Plain HTML POST avoids cross-origin fetch/CORS restrictions on Google Apps Script.
+   status.textContent='Your registration will open in a new tab. It is complete only when that tab displays “Registration received”.';
+   // Standard HTML POST works on GitHub Pages without relying on cross-origin fetch/CORS.
+   // Server displays an authoritative receipt in a new tab; client never claims success early.
    HTMLFormElement.prototype.submit.call(form);
    setTimeout(()=>{confirm.disabled=false;},3000);
  });

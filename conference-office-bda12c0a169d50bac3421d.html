@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><title>FMF-AI 2027 · Organizer access</title>
+<link rel="icon" href="assets/fmf-ai-sigmoid-symbol.png">
+<style>body{margin:0;background:#f6f8fb;color:#203b52;font:17px/1.6 system-ui,sans-serif} main{max-width:720px;margin:10vh auto;padding:36px;background:white;border:1px solid #d5e0eb;border-top:5px solid #3579a0}img{width:150px;display:block;margin-bottom:20px}h1{font-size:1.6rem;margin:0 0 10px}p{margin:0 0 20px;color:#526a7a}button{display:inline-block;border:0;border-radius:4px;padding:12px 20px;background:#24658e;color:white;font:700 1rem system-ui,sans-serif;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}#message{font-size:.9rem}@media(max-width:730px){main{margin:20px 12px;padding:25px 20px}}</style></head><body>
+<main><img src="assets/fmf-ai-sigmoid-logo.png" alt="FMF-AI"><h1>Organizer access</h1>
+<p>View registrations, search participant details and download the Excel spreadsheet through the private Google dashboard.</p>
+<button type="button" id="open" disabled>Open registration dashboard</button>
+<p id="message" role="status">The private dashboard is not configured yet.</p></main>
+<script>
+// The Google dashboard MUST be deployed with access: ONLY MYSELF.
+// Paste the PRIVATE dashboard /exec URL after deploying backend/private-admin/Code.gs.
+const PRIVATE_DASHBOARD_URL = '';
+const button = document.getElementById('open');
+if (/^https:\/\/script\.google\.com\/macros\/s\/[^/?#]+\/exec(?:\?[^#]*)?$/.test(PRIVATE_DASHBOARD_URL)) {
+  button.disabled=false;
+  document.getElementById('message').textContent='Sign in with the conference Google account to continue.';
+  button.addEventListener('click',()=>{ window.location.href=PRIVATE_DASHBOARD_URL; });
+}
+</script></body></html>

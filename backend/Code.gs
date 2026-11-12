@@ -1,89 +1,95 @@
 /**
- * FMF-AI 2027 conference registration endpoint.
- * Deploy as Google Apps Script Web App: Execute as Me, Who has access Anyone.
- * All records stay in a PRIVATE Google Sheet. Never publish the sheet itself.
- * Test with fictional names before enabling public registration.
+ * FMF–AI 2027 — PUBLIC registration receiver.
+ * This Apps Script project must be separate from the private admin project.
+ * Deploy Web app: Execute as Me; Who has access: Anyone.
+ * Do not add any read/list/export function to this publicly accessible project.
  */
-const SPREADSHEET_ID = 'PASTE_PRIVATE_GOOGLE_SPREADSHEET_ID_HERE';
+const SPREADSHEET_ID = 'PASTE_PRIVATE_SPREADSHEET_ID_HERE';
 const SHEET_NAME = 'Registrations';
 const REGISTRATION_OPEN = true;
-const SITE_URL = 'https://YOUR_GITHUB_USERNAME.github.io/YOUR_REPOSITORY/';
+const SITE_URL = 'https://YOUR_USER.github.io/YOUR_REPO/registration.html';
 
 const HEADERS = [
-  'Timestamp', 'Request ID', 'First name', 'Family name', 'Email', 'Institution',
-  'Category', 'Presentation', 'Presentation title', 'Poster', 'Poster title',
-  'Invoice required', 'Billing name', 'Billing address', 'Tax/VAT number',
-  'Dietary requirements', 'Additional comments'
+  'Timestamp','Request ID','First name','Family name','Email','Institution',
+  'Category','Presentation','Presentation title','Poster','Poster title',
+  'Invoice required','Billing name','Billing address','Tax/VAT number',
+  'Dietary requirements','Additional comments'
 ];
 const CATEGORIES = ['Regular participant','PhD student','Poster only','Accompanying person'];
 
-function safe(v, limit) {
-  let s = String(v == null ? '' : v).trim().slice(0, limit);
-  // Avoid interpreting untrusted participant data as spreadsheet formulas.
-  if (/^[\u0000-\u0020]*[=+\-@]/.test(s)) s = "'" + s;
-  return s;
+function clean_(value, maxLength) {
+  const s = String(value == null ? '' : value).trim().slice(0,maxLength);
+  // Prevent CSV/Excel formula injection (Sheets interprets =,+,-,@ as formulas).
+  return /^[\u0000-\u0020]*[=+\-@]/.test(s) ? "'" + s : s;
 }
-function resultPage(message, success) {
-  const colour = success ? '#0d588e' : '#a32636';
-  const html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
-    '<meta name="viewport" content="width=device-width,initial-scale=1"><title>FMF-AI Registration</title></head>' +
-    '<body style="font:16px/1.7 system-ui,sans-serif;color:#163c5b;max-width:620px;margin:50px auto;padding:0 22px">' +
-    '<h1 style="color:' + colour + ';font-size:1.8rem">' + message + '</h1>' +
-    '<p>' + (success ? 'Your registration has been recorded.' : 'No new registration was recorded.') + '</p>' +
-    '<p><a href="' + SITE_URL + '" target="_top">Back to the conference website</a></p></body></html>';
+function receipt_(title, text, success, requestId) {
+  // Never interpolate free-form registration data into HTML.
+  const status = success ? '#1e7667' : '#aa4242';
+  const idInfo = success && /^[a-zA-Z0-9-]{15,120}$/.test(String(requestId || ''))
+    ? '<p class="reference">Reference: ' + requestId + '</p>' : '';
+  const url = /^https:\/\/[^"'<>]+$/.test(SITE_URL) ? SITE_URL : 'https://github.com/';
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>FMF–AI 2027 · Registration</title><style>
+  body{background:#f6f8fa;color:#243b4f;margin:0;font:17px/1.6 Arial,system-ui,sans-serif}
+  main{max-width:640px;margin:10vh auto;padding:36px 34px;background:#fff;border:1px solid #d9e2e8;border-top:5px solid ${status}}
+  h1{font-size:1.75rem;line-height:1.2;color:${status};margin:0 0 15px}
+  p{margin:0 0 16px}.reference{font-size:.84rem;color:#526b80}
+  a{color:#17658e;font-weight:700} @media(max-width:650px){main{margin:20px 12px;padding:25px 20px}}
+  </style></head><body><main><h1>${title}</h1><p>${text}</p>${idInfo}<a href="${url}" target="_top" rel="noopener">Back to conference registration</a></main></body></html>`;
   return HtmlService.createHtmlOutput(html).setTitle('FMF-AI 2027 Registration');
 }
+function doGet(e) {
+  return receipt_('FMF-AI 2027 Registration','Please submit the registration form on the conference website.',false,'');
+}
 function doPost(e) {
+  let requestId='';
   try {
-    if (!REGISTRATION_OPEN) return resultPage('Registration is not yet open', false);
-    if (SPREADSHEET_ID.indexOf('PASTE_') === 0) return resultPage('Registration service is not configured', false);
-    const p=(e && e.parameter) || {};
-    if (p.website) return resultPage('Registration could not be processed',false);
-    const first=safe(p.firstName,100),last=safe(p.familyName,100);
-    const email=safe(p.email,200),institution=safe(p.institution,220);
+    if(!REGISTRATION_OPEN) return receipt_('Registration is closed','Please contact the organizing committee.',false,'');
+    if(SPREADSHEET_ID.startsWith('PASTE_')) return receipt_('Service not configured','The organizer has not connected the registration spreadsheet yet.',false,'');
+    const p=(e && e.parameter)||{};
+    if(p.website) return receipt_('Registration not recorded','Please return to the form.',false,'');
+    requestId=String(p.requestId||'').trim();
+    const first=clean_(p.firstName,100),last=clean_(p.familyName,100),email=clean_(p.email,200),institution=clean_(p.institution,220);
     const category=String(p.category||''),invoice=String(p.invoice||'');
     const presentation=p.presentation==='Yes',poster=p.poster==='Yes';
-    const presTitle=safe(p.presentationTitle,350),posterTitle=safe(p.posterTitle,350);
-    const billingName=safe(p.billingName,220),billingAddress=safe(p.billingAddress,350);
-    const requestId=String(p.requestId||'').trim();
-    if (!first||!last||!institution||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||
+    const presentationTitle=clean_(p.presentationTitle,350),posterTitle=clean_(p.posterTitle,350);
+    const billingName=clean_(p.billingName,220),billingAddress=clean_(p.billingAddress,350);
+    if(!first||!last||!institution||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||
         !CATEGORIES.includes(category)||!['Yes','No'].includes(invoice)||
         !/^[a-zA-Z0-9-]{15,120}$/.test(requestId)) {
-      return resultPage('Please check the required information',false);
+      return receipt_('Please check your details','The registration was not saved. Check the required fields and try again.',false,'');
     }
     if(category==='Accompanying person') {
-      if(presentation||poster) return resultPage('Accompanying persons cannot register contributions',false);
-    } else {
-      if(!presentation&&!poster) return resultPage('Choose a presentation or a poster',false);
-      if(category==='Poster only'&&(!poster||presentation)) return resultPage('Poster-only registration does not include a presentation',false);
-      if(['Regular participant','PhD student'].includes(category)&&!presentation) return resultPage('This registration category requires a presentation',false);
-      if(presentation&&!presTitle) return resultPage('Presentation title is required',false);
-      if(poster&&!posterTitle) return resultPage('Poster title is required',false);
+      if(presentation||poster||presentationTitle||posterTitle) return receipt_('Invalid contribution','Accompanying persons cannot submit presentations or posters.',false,'');
+    } else if(category==='Poster only') {
+      if(presentation||!poster||presentationTitle||!posterTitle) return receipt_('Invalid contribution','Poster-only registration requires a poster title and does not include a presentation.',false,'');
+    } else if(category==='Regular participant'||category==='PhD student') {
+      if(!presentation||!presentationTitle||(poster&&!posterTitle)||(!poster&&posterTitle))
+        return receipt_('Invalid contribution','A presentation title is required. Enter a poster title only if submitting a poster as well.',false,'');
     }
-    if(invoice==='Yes'&&(!billingName||!billingAddress)) return resultPage('Please provide your invoice details',false);
-    const lock=LockService.getScriptLock();lock.waitLock(15000);
-    try{
+    if(invoice==='Yes'&&(!billingName||!billingAddress)) return receipt_('Invoice information missing','Please enter the billing recipient and address.',false,'');
+    const lock=LockService.getScriptLock();
+    if(!lock.tryLock(20000))return receipt_('Please retry','The registration service is temporarily busy. Your registration was not saved.',false,'');
+    try {
       const book=SpreadsheetApp.openById(SPREADSHEET_ID);
       let sheet=book.getSheetByName(SHEET_NAME);
-      if(!sheet)sheet=book.insertSheet(SHEET_NAME);
-      if(sheet.getLastRow()===0)sheet.appendRow(HEADERS);
-      // A repeated click or browser retry must not create a duplicate registration.
+      if(!sheet) sheet=book.insertSheet(SHEET_NAME);
+      if(sheet.getLastRow()===0){sheet.appendRow(HEADERS);sheet.setFrozenRows(1);}
       const n=sheet.getLastRow()-1;
       if(n>0){
         const ids=sheet.getRange(2,2,n,1).getDisplayValues();
-        if(ids.some(row=>row[0]===requestId))return resultPage('Registration already received',true);
+        if(ids.some(row=>row[0]===requestId)) return receipt_('Registration already received','This registration was saved previously. Please do not submit it again.',true,requestId);
       }
       sheet.appendRow([
         new Date(),requestId,first,last,email,institution,category,
-        presentation?'Yes':'No',presentation?presTitle:'',poster?'Yes':'No',poster?posterTitle:'',
+        presentation?'Yes':'No',presentation?presentationTitle:'',poster?'Yes':'No',poster?posterTitle:'',
         invoice,invoice==='Yes'?billingName:'',invoice==='Yes'?billingAddress:'',
-        invoice==='Yes'?safe(p.taxNumber,100):'',safe(p.dietary,700),safe(p.comments,1400)
+        invoice==='Yes'?clean_(p.taxNumber,100):'',clean_(p.dietary,700),clean_(p.comments,1400)
       ]);
+      SpreadsheetApp.flush();
     } finally {lock.releaseLock();}
-    return resultPage('Registration received',true);
-  } catch(error) {
-    console.error('FMF-AI registration failed',error);
-    return resultPage('Registration could not be processed',false);
+    return receipt_('Registration received','Your registration has been saved successfully. Thank you!',true,requestId);
+  } catch(err) {
+    console.error('Registration failed',err);
+    return receipt_('Registration not recorded','A server error occurred. Please contact the organizers or try again.',false,'');
   }
 }
-function doGet(){return resultPage('Please use the conference registration form',false);}
