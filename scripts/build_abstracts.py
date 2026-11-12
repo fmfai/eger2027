@@ -11,7 +11,7 @@ end=base.index('<!-- GENERATED_ABSTRACTS_END -->',start)
 sub=base[:base.index('<main class="container main">')]
 footer=base[base.index('</main>')+7:]
 # The header/footer resource URLs are relative to the site root; retarget for /abstracts/.
-for x in ['index.html','invited-lectures.html','important-dates.html','submission.html','abstracts.html','program.html','venue.html','fees.html','registration.html','committees.html','privacy.html','organizer.html','downloads/FMF_AI_2025_Program.pdf','assets/fmf-ai-sigmoid-logo.png','assets/fmf-ai-sigmoid-symbol.png','assets/university.png','assets/style.css','assets/site.js','assets/settings.js']:
+for x in ['index.html','invited-lectures.html','important-dates.html','submission.html','abstracts.html','program.html','venue.html','fees.html','registration.html','committees.html','privacy.html','downloads/FMF_AI_2025_Program.pdf','assets/fmf-ai-sigmoid-logo.png','assets/fmf-ai-sigmoid-symbol.png','assets/university.png','assets/style.css','assets/site.js','assets/settings.js']:
     sub=sub.replace('"'+x+'"','"../'+x+'"')
     footer=footer.replace('"'+x+'"','"../'+x+'"')
 entries=json.loads((ROOT/'abstracts/entries.json').read_text(encoding='utf-8'))

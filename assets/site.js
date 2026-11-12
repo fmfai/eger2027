@@ -65,7 +65,7 @@ if(contrastButtons.length){
  });
 }
 function initPage(){
-  initTabs();initAbstracts();initRegistration();initCsvExport();
+  initTabs();initAbstracts();initRegistration();
 }
 function initTabs(){
  const tabs=[...document.querySelectorAll('[role="tab"]')];if(!tabs.length)return;
@@ -104,21 +104,26 @@ function initAbstracts(){
 }
 function initRegistration(){
  const form=document.getElementById('registration-form');if(!form)return;
- const cfg=window.FMFAI_CONFIG||{},endpoint=String(cfg.registrationEndpoint||'').trim();
+ const cfg=window.FMFAI_CONFIG||{},configuredEndpoint=String(cfg.registrationEndpoint||'').trim();
+ const endpoint=/^https:\/\/script\.google\.com\/macros\/s\/[^/?#]+\/exec(?:\?[^#]*)?$/.test(configuredEndpoint) ? configuredEndpoint : '';
  const $=id=>document.getElementById(id),category=$('category'),presentation=$('presentation'),poster=$('poster');
  const presentationMirror=$('presentation-mirror'),posterMirror=$('poster-mirror');
  const overlay=$('review-overlay'),review=$('review-rows'),message=$('review-message'),status=$('form-status');
  const confirm=$('confirm-registration'),close=$('close-review'),edit=$('edit-registration');
- const testNote=$('registration-test-note'),testResult=$('test-save-result');
- const TEST_KEY='fmf-ai-2027-registrations-test-v1';
+ const activationNotice=$('registration-activation-note');
  let returnFocus=null,validationAttempted=false,errors=[];
  const val=id=>String($(id)?.value||'').trim();
  const invoiceValue=()=>form.querySelector('input[name="invoice"]:checked')?.value||'';
  const isRegular=()=>category.value==='Regular participant'||category.value==='PhD student';
  const isPosterOnly=()=>category.value==='Poster only';
  const isCompanion=()=>category.value==='Accompanying person';
- if(endpoint){form.action=endpoint;if(testNote)testNote.hidden=true;}
- else {form.removeAttribute('action');if(testNote)testNote.hidden=false;}
+ if(endpoint) {
+   form.action=endpoint;
+   if(activationNotice)activationNotice.hidden=true;
+ } else {
+   form.removeAttribute('action');
+   if(activationNotice)activationNotice.hidden=false;
+ }
  function switchTitle(blockId,id,on){
    const block=$(blockId),input=$(id);block.hidden=!on;input.disabled=!on;input.required=on;
    if(!on){input.value='';input.setCustomValidity('');input.removeAttribute('aria-invalid');}
@@ -214,6 +219,12 @@ function initRegistration(){
    }
    if(r.dietary)row('Dietary requirements',r.dietary);
    if(r.comments)row('Additional comments',r.comments);
+   if(!endpoint){
+     message.textContent='Online registration is not yet available. You can review your details, but cannot submit them.';
+     confirm.disabled=true;
+   } else {
+     confirm.disabled=false;
+   }
    overlay.hidden=false;document.body.classList.add('dialog-open');close.focus();
  }
  function hideReview(){overlay.hidden=true;document.body.classList.remove('dialog-open');returnFocus?.focus();}
@@ -228,66 +239,19 @@ function initRegistration(){
      else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
    }
  });
- function getSaved(){try {return JSON.parse(localStorage.getItem(TEST_KEY)||'[]');}catch(e){return [];}}
- function storeTest(r){
-   const stored=getSaved();if(!stored.some(s=>s.requestId===r.requestId))stored.push({...r,timestamp:new Date().toISOString()});
-   localStorage.setItem(TEST_KEY,JSON.stringify(stored));
- }
- function exportCsv(){
-   const keys=[['timestamp','Timestamp'],['requestId','Request ID'],['firstName','First name'],['familyName','Family name'],['email','Email'],['institution','Institution'],['category','Category'],['presentation','Presentation'],['presentationTitle','Presentation title'],['poster','Poster'],['posterTitle','Poster title'],['invoice','Invoice required'],['billingName','Billing name'],['billingAddress','Billing address'],['taxNumber','Tax / VAT number'],['dietary','Dietary requirements'],['comments','Additional comments']];
-   const safeCsv=x=>{
-     let s=String(x??'');
-     if(/^[\s\u0000-\u001f]*[=+\-@]/.test(s))s="'"+s;
-     return '"'+s.replace(/"/g,'""')+'"';
-   };
-   const records=getSaved(),lines=[keys.map(k=>safeCsv(k[1])).join(',')];
-   records.forEach(r=>lines.push(keys.map(k=>safeCsv(r[k[0]])).join(',')));
-   const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
-   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='fmf-ai-2027-test-registrations.csv';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),400);
- }
- $('download-test-csv')?.addEventListener('click',exportCsv);
- $('new-test-registration')?.addEventListener('click',()=>{
-   form.reset();$('requestId').value='';sync(true);testResult.hidden=true;status.textContent='';validationAttempted=false;
-   for(const p of form.querySelectorAll('.field-error'))p.remove();
-   form.querySelector('#firstName').focus();
- });
  confirm.addEventListener('click',()=>{
+   if(!endpoint){message.textContent='Registration has not been activated yet.';return;}
    if(!validate(false)){hideReview();status.textContent='Please correct the highlighted fields.';return;}
    if(!$('requestId').value)$('requestId').value=globalThis.crypto?.randomUUID?.()||`fmf-${Date.now()}-${Math.random().toString(36).slice(2)}`;
    confirm.disabled=true;
-   if(!endpoint){
-     try{
-       storeTest(currentRecord());hideReview();testResult.hidden=false;
-       status.textContent='Test registration submitted successfully.';
-       testResult.scrollIntoView({behavior:'smooth',block:'nearest'});
-     }catch(e){message.textContent='This browser cannot save local test registrations. Check private browsing or storage settings.';}
-     finally{confirm.disabled=false;}
-     return;
-   }
    hideReview();
-   status.textContent='Your registration will be processed in the newly opened tab. Please check the result there.';
+   status.textContent='Your submission is opening in a new tab. Check that tab for the confirmation message.';
+   // Plain HTML POST avoids cross-origin fetch/CORS restrictions on Google Apps Script.
    HTMLFormElement.prototype.submit.call(form);
    setTimeout(()=>{confirm.disabled=false;},3000);
  });
 }
 
-
-function initCsvExport(){
- const form=document.getElementById('csv-export-form');if(!form)return;
- form.addEventListener('submit',e=>{
-   e.preventDefault();const raw=document.getElementById('sheet-reference').value.trim();
-   const gid=document.getElementById('sheet-tab-gid').value.trim()||'0';
-   let id=raw;
-   const match=raw.match(/^https:\/\/docs\.google\.com\/spreadsheets\/d\/([a-zA-Z0-9_-]+)(?:\/|$)/);
-   if(raw.startsWith('http'))id=match?.[1]||'';
-   const message=document.getElementById('csv-message');
-   if(!/^[a-zA-Z0-9_-]{20,}$/.test(id)||!/^\d+$/.test(gid)){
-     message.textContent='Please enter a valid Google spreadsheet ID (or URL) and numeric tab ID.';return;
-   }
-   message.textContent='The export opens in a new tab. Google will verify your access.';
-   window.open(`https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/export?format=csv&gid=${encodeURIComponent(gid)}`,'_blank','noopener,noreferrer');
- });
-}
 
 // Fast navigation swaps only the content panel; the header/menu/footer stay mounted.
 // Normal links remain the fallback when JavaScript is unavailable or fetch fails.
