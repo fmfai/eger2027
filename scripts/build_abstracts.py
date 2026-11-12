@@ -6,6 +6,9 @@ import json, html, subprocess, re
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 base=(ROOT/'abstracts.html').read_text(encoding='utf-8')
+if '<!-- GENERATED_ABSTRACTS_START -->' not in base:
+    print('Abstracts listing is in Coming soon mode; leaving it unchanged.')
+    raise SystemExit(0)
 start=base.index('<!-- GENERATED_ABSTRACTS_START -->')+len('<!-- GENERATED_ABSTRACTS_START -->')
 end=base.index('<!-- GENERATED_ABSTRACTS_END -->',start)
 sub=base[:base.index('<main class="container main">')]
