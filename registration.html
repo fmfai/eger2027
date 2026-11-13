@@ -33,10 +33,12 @@
 <label class="choice"><input name="invoice" required="" type="radio" value="No"/> No</label>
 </fieldset>
 <p class="form-feedback" hidden="" id="invoice-error" role="alert"></p>
+<label class="choice"><input id="proforma" name="proforma" type="checkbox" value="Yes"/> Request a pro forma invoice (payment request)</label>
 <div class="registration-billing" hidden="" id="billing-fields">
-<div class="field"><label for="billingName">Invoice recipient <span aria-hidden="true">*</span></label><input disabled="" id="billingName" maxlength="220" name="billingName"/></div>
+<div class="field"><label for="billingName">Billing recipient <span aria-hidden="true">*</span></label><input disabled="" id="billingName" maxlength="220" name="billingName"/></div>
 <div class="field"><label for="taxNumber">Tax / VAT number (if applicable)</label><input disabled="" id="taxNumber" maxlength="100" name="taxNumber"/></div>
 <div class="field full"><label for="billingAddress">Billing address <span aria-hidden="true">*</span></label><textarea disabled="" id="billingAddress" maxlength="350" name="billingAddress" rows="2"></textarea></div>
+<div class="field full" hidden="" id="invoice-notes-field"><label for="invoiceNotes">Invoice notes <span class="optional-note">(optional)</span></label><textarea disabled="" id="invoiceNotes" maxlength="700" name="invoiceNotes" rows="2" placeholder="Additional information for the invoice, if needed"></textarea></div>
 </div>
 </section>
 <section class="form-block"><h2>Meals</h2>

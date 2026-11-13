@@ -114,6 +114,8 @@ function initRegistration(){
  let returnFocus=null,validationAttempted=false,errors=[];
  const val=id=>String($(id)?.value||'').trim();
  const invoiceValue=()=>form.querySelector('input[name="invoice"]:checked')?.value||'';
+ const proformaValue=()=>$('proforma').checked?'Yes':'No';
+ const requiresBilling=()=>invoiceValue()==='Yes'||proformaValue()==='Yes';
  const isRegular=()=>category.value==='Regular participant'||category.value==='PhD student';
  const isPosterOnly=()=>category.value==='Poster only';
  const isCompanion=()=>category.value==='Accompanying person';
@@ -149,15 +151,19 @@ function initRegistration(){
    switchTitle('presentation-title-field','presentationTitle',regular);
    switchTitle('poster-title-field','posterTitle',pOnly||(regular&&poster.checked));
    $('category-rule').hidden=true;
-   const bill=invoiceValue()==='Yes';$('billing-fields').hidden=!bill;
+   const bill=requiresBilling();$('billing-fields').hidden=!bill;
+   const invoiceNotesVisible=invoiceValue()==='Yes';
+   $('invoice-notes-field').hidden=!invoiceNotesVisible;
    for(const input of $('billing-fields').querySelectorAll('input,textarea')){
-     input.disabled=!bill;input.required=bill&&['billingName','billingAddress'].includes(input.id);
-     if(!bill){input.value='';input.setCustomValidity('');input.removeAttribute('aria-invalid');}
+     const enabled=bill&&(input.id!=='invoiceNotes'||invoiceNotesVisible);
+     input.disabled=!enabled;input.required=enabled&&['billingName','billingAddress'].includes(input.id);
+     if(!enabled){input.value='';input.setCustomValidity('');input.removeAttribute('aria-invalid');}
    }
  }
  category.addEventListener('change',()=>sync(true));
  poster.addEventListener('change',()=>sync(false));
  for(const r of form.querySelectorAll('[name="invoice"]'))r.addEventListener('change',()=>sync(false));
+ $('proforma').addEventListener('change',()=>sync(false));
  sync(true);
  function clearErrors(){
    for(const e of form.querySelectorAll('input,select,textarea')){e.setCustomValidity('');e.removeAttribute('aria-invalid');}
@@ -184,8 +190,8 @@ function initRegistration(){
      if(!val('posterTitle'))setError($('posterTitle'),'Please enter the title of your poster.');
    }
    if(!invoiceValue())groupError('invoice-error','Please indicate whether you require an invoice.',form.querySelector('[name="invoice"]'));
-   if(invoiceValue()==='Yes'){
-     if(!val('billingName'))setError($('billingName'),'Please enter the invoice recipient.');
+   if(requiresBilling()){
+     if(!val('billingName'))setError($('billingName'),'Please enter the billing recipient.');
      if(!val('billingAddress'))setError($('billingAddress'),'Please enter the billing address.');
    }
    if(errors.length){
@@ -207,8 +213,9 @@ function initRegistration(){
      requestId:val('requestId'),firstName:val('firstName'),familyName:val('familyName'),email:val('email'),institution:val('institution'),
      category:category.value,presentation:regular?'Yes':'No',presentationTitle:regular?val('presentationTitle'):'',
      poster:(pOnly||regular&&poster.checked)?'Yes':'No',posterTitle:(pOnly||regular&&poster.checked)?val('posterTitle'):'',
-     invoice:invoiceValue(),billingName:invoiceValue()==='Yes'?val('billingName'):'',
-     billingAddress:invoiceValue()==='Yes'?val('billingAddress'):'',taxNumber:invoiceValue()==='Yes'?val('taxNumber'):'',
+     invoice:invoiceValue(),proforma:proformaValue(),billingName:requiresBilling()?val('billingName'):'',
+     billingAddress:requiresBilling()?val('billingAddress'):'',taxNumber:requiresBilling()?val('taxNumber'):'',
+     invoiceNotes:invoiceValue()==='Yes'?val('invoiceNotes'):'',
      dietary:val('dietary'),comments:val('comments'),meals:meals.filter(([id])=>$(id).checked).map(([,label])=>label)
    };
  }
@@ -220,9 +227,11 @@ function initRegistration(){
    if(r.presentation==='Yes')row('Presentation title',r.presentationTitle);
    if(r.poster==='Yes')row('Poster title',r.posterTitle);
    row('Invoice requested',r.invoice);
-   if(r.invoice==='Yes'){
-     row('Invoice recipient',r.billingName);row('Billing address',r.billingAddress);
+   row('Pro forma invoice requested',r.proforma);
+   if(r.invoice==='Yes'||r.proforma==='Yes'){
+     row('Billing recipient',r.billingName);row('Billing address',r.billingAddress);
      if(r.taxNumber)row('Tax / VAT number',r.taxNumber);
+     if(r.invoiceNotes)row('Invoice notes',r.invoiceNotes);
    }
    row('Expected meals',r.meals.length?r.meals.join('; '):'None selected');
    if(r.dietary)row('Dietary requirements',r.dietary);

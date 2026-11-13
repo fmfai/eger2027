@@ -752,3 +752,6 @@ body {color:var(--quiet); background:var(--paper);}
 @media(max-width:650px) {.meal-grid {grid-template-columns:minmax(0,1fr);gap:2px;}}
 :root.high-contrast .registration-testing-notice {background:#000!important;border-color:#fff600!important;color:#fff600!important;}
 :root.high-contrast .meal-selection legend,:root.high-contrast .optional-note,:root.high-contrast .meal-help {color:#fff600!important;}
+
+/* Billing notes are shown only when an invoice is requested. */
+#invoice-notes-field[hidden]{display:none!important}
