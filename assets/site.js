@@ -117,6 +117,13 @@ function initRegistration(){
  const isRegular=()=>category.value==='Regular participant'||category.value==='PhD student';
  const isPosterOnly=()=>category.value==='Poster only';
  const isCompanion=()=>category.value==='Accompanying person';
+ const meals=[
+   ['mealJan28Lunch','28 January — Lunch'],
+   ['mealJan28Dinner','28 January — Dinner'],
+   ['mealJan29Lunch','29 January — Lunch'],
+   ['mealJan29GalaDinner','29 January — Gala dinner'],
+   ['mealJan30Lunch','30 January — Lunch']
+ ];
  if(endpoint) {
    form.action=endpoint;
    if(activationNotice)activationNotice.hidden=true;
@@ -202,7 +209,7 @@ function initRegistration(){
      poster:(pOnly||regular&&poster.checked)?'Yes':'No',posterTitle:(pOnly||regular&&poster.checked)?val('posterTitle'):'',
      invoice:invoiceValue(),billingName:invoiceValue()==='Yes'?val('billingName'):'',
      billingAddress:invoiceValue()==='Yes'?val('billingAddress'):'',taxNumber:invoiceValue()==='Yes'?val('taxNumber'):'',
-     dietary:val('dietary'),comments:val('comments')
+     dietary:val('dietary'),comments:val('comments'),meals:meals.filter(([id])=>$(id).checked).map(([,label])=>label)
    };
  }
  function openReview(){
@@ -217,6 +224,7 @@ function initRegistration(){
      row('Invoice recipient',r.billingName);row('Billing address',r.billingAddress);
      if(r.taxNumber)row('Tax / VAT number',r.taxNumber);
    }
+   row('Expected meals',r.meals.length?r.meals.join('; '):'None selected');
    if(r.dietary)row('Dietary requirements',r.dietary);
    if(r.comments)row('Additional comments',r.comments);
    if(!endpoint){
