@@ -755,3 +755,7 @@ body {color:var(--quiet); background:var(--paper);}
 
 /* Billing notes are shown only when an invoice is requested. */
 #invoice-notes-field[hidden]{display:none!important}
+
+/* Registration review: visible, non-blocking pro forma / invoice mismatch notice. */
+.review-warning{background:#fff6df;border-left:4px solid #ae7b23;padding:12px 15px;margin:10px 0 16px!important;font-size:.93rem;line-height:1.55;color:#503c18;}
+:root.high-contrast .review-warning{background:#000!important;border-color:#fff600!important;color:#fff600!important;}

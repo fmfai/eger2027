@@ -38,11 +38,11 @@
 <div class="field"><label for="billingName">Billing recipient <span aria-hidden="true">*</span></label><input disabled="" id="billingName" maxlength="220" name="billingName"/></div>
 <div class="field"><label for="taxNumber">Tax / VAT number (if applicable)</label><input disabled="" id="taxNumber" maxlength="100" name="taxNumber"/></div>
 <div class="field full"><label for="billingAddress">Billing address <span aria-hidden="true">*</span></label><textarea disabled="" id="billingAddress" maxlength="350" name="billingAddress" rows="2"></textarea></div>
-<div class="field full" hidden="" id="invoice-notes-field"><label for="invoiceNotes">Invoice notes <span class="optional-note">(optional)</span></label><textarea disabled="" id="invoiceNotes" maxlength="700" name="invoiceNotes" rows="2" placeholder="Additional information for the invoice, if needed"></textarea></div>
+<div class="field full" hidden="" id="invoice-notes-field"><label for="invoiceNotes">Invoice notes</label><textarea disabled="" id="invoiceNotes" maxlength="700" name="invoiceNotes" rows="2"></textarea></div>
 </div>
 </section>
 <section class="form-block"><h2>Meals</h2>
-<fieldset class="meal-selection"><legend>Which meals do you expect to attend? <span class="optional-note">(optional)</span></legend>
+<fieldset class="meal-selection"><legend>Which meals do you expect to attend?</legend>
 <div class="meal-grid">
 <label class="choice"><input id="mealJan28Lunch" name="mealJan28Lunch" type="checkbox" value="Yes"/> 28 January — Lunch</label>
 <label class="choice"><input id="mealJan28Dinner" name="mealJan28Dinner" type="checkbox" value="Yes"/> 28 January — Dinner</label>
@@ -65,7 +65,9 @@
 </div>
 </form>
 <div class="dialog-overlay" hidden="" id="review-overlay"><div aria-labelledby="review-title" aria-modal="true" class="dialog" role="dialog"><div class="dialog-top"><h2 id="review-title">Review Registration</h2><button aria-label="Close review" class="close-modal" id="close-review" type="button">×</button></div>
-<p class="dialog-hint">Please check your details before submitting.</p><dl class="review-rows" id="review-rows"></dl>
+<p class="dialog-hint">Please check your details before submitting.</p>
+<p class="review-warning" id="proforma-invoice-warning" role="alert" hidden><strong>Please note:</strong> You requested a pro forma invoice but did not request an invoice. A pro forma invoice is not an official tax invoice. If your institution requires an invoice, please go back and change your selection.</p>
+<dl class="review-rows" id="review-rows"></dl>
 <div class="dialog-actions"><button class="secondary-button" id="edit-registration" type="button">Back to Editing</button><button class="primary-button" id="confirm-registration" type="button">Submit Registration</button></div>
 <p aria-live="polite" class="dialog-hint" id="review-message" role="status"></p></div></div>
 </main><footer class="site-footer"><div class="container footer-row"><div class="footer-university"><img alt="Eszterházy Károly Catholic University" src="assets/university.png"/><span>Eszterházy Károly Catholic University</span></div></div></footer></div>

@@ -152,10 +152,9 @@ function initRegistration(){
    switchTitle('poster-title-field','posterTitle',pOnly||(regular&&poster.checked));
    $('category-rule').hidden=true;
    const bill=requiresBilling();$('billing-fields').hidden=!bill;
-   const invoiceNotesVisible=invoiceValue()==='Yes';
-   $('invoice-notes-field').hidden=!invoiceNotesVisible;
+   $('invoice-notes-field').hidden=!bill;
    for(const input of $('billing-fields').querySelectorAll('input,textarea')){
-     const enabled=bill&&(input.id!=='invoiceNotes'||invoiceNotesVisible);
+     const enabled=bill;
      input.disabled=!enabled;input.required=enabled&&['billingName','billingAddress'].includes(input.id);
      if(!enabled){input.value='';input.setCustomValidity('');input.removeAttribute('aria-invalid');}
    }
@@ -215,7 +214,7 @@ function initRegistration(){
      poster:(pOnly||regular&&poster.checked)?'Yes':'No',posterTitle:(pOnly||regular&&poster.checked)?val('posterTitle'):'',
      invoice:invoiceValue(),proforma:proformaValue(),billingName:requiresBilling()?val('billingName'):'',
      billingAddress:requiresBilling()?val('billingAddress'):'',taxNumber:requiresBilling()?val('taxNumber'):'',
-     invoiceNotes:invoiceValue()==='Yes'?val('invoiceNotes'):'',
+     invoiceNotes:requiresBilling()?val('invoiceNotes'):'',
      dietary:val('dietary'),comments:val('comments'),meals:meals.filter(([id])=>$(id).checked).map(([,label])=>label)
    };
  }
@@ -228,6 +227,7 @@ function initRegistration(){
    if(r.poster==='Yes')row('Poster title',r.posterTitle);
    row('Invoice requested',r.invoice);
    row('Pro forma invoice requested',r.proforma);
+   $('proforma-invoice-warning').hidden=!(r.proforma==='Yes'&&r.invoice==='No');
    if(r.invoice==='Yes'||r.proforma==='Yes'){
      row('Billing recipient',r.billingName);row('Billing address',r.billingAddress);
      if(r.taxNumber)row('Tax / VAT number',r.taxNumber);
