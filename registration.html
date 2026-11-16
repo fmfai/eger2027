@@ -60,6 +60,7 @@
 <div class="form-actions">
 <div aria-hidden="true" class="honeypot"><label for="website">Website</label><input autocomplete="off" id="website" name="website" tabindex="-1"/></div>
 <input id="requestId" name="requestId" type="hidden" value=""/>
+<input id="turnstile-response" name="cf-turnstile-response" type="hidden" value=""/>
 <button class="primary-button" type="submit">Review Registration</button>
 <p class="test-hint" id="registration-activation-note" role="status">Registration is temporarily unavailable while the registration service is being configured.</p><p aria-live="polite" class="form-status" id="form-status" role="status"></p>
 </div>
@@ -68,6 +69,11 @@
 <p class="dialog-hint">Please check your details before submitting.</p>
 <p class="review-warning" id="proforma-invoice-warning" role="alert" hidden><strong>Please note:</strong> You requested a pro forma invoice but did not request an invoice. A pro forma invoice is not an official tax invoice. If your institution requires an invoice, please go back and change your selection.</p>
 <dl class="review-rows" id="review-rows"></dl>
+<section class="turnstile-section" aria-label="Robot verification">
+  <p class="turnstile-title">Robot verification <span aria-hidden="true">*</span></p>
+  <div id="turnstile-widget" data-sitekey="0x4AAAAAAGDa2qiAMD8d0avt"></div>
+  <p class="turnstile-feedback" id="turnstile-feedback" aria-live="polite">Verification is required before submitting.</p>
+</section>
 <div class="dialog-actions"><button class="secondary-button" id="edit-registration" type="button">Back to Editing</button><button class="primary-button" id="confirm-registration" type="button">Submit Registration</button></div>
 <p aria-live="polite" class="dialog-hint" id="review-message" role="status"></p></div></div>
 </main><footer class="site-footer"><div class="container footer-row"><div class="footer-university"><img alt="Eszterházy Károly Catholic University" src="assets/university.png"/><span>Eszterházy Károly Catholic University</span></div></div></footer></div>

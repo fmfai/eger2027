@@ -111,7 +111,68 @@ function initRegistration(){
  const overlay=$('review-overlay'),review=$('review-rows'),message=$('review-message'),status=$('form-status');
  const confirm=$('confirm-registration'),close=$('close-review'),edit=$('edit-registration');
  const activationNotice=$('registration-activation-note');
- let returnFocus=null,validationAttempted=false,errors=[];
+ const turnstileBox=$('turnstile-widget'),turnstileResponse=$('turnstile-response'),turnstileFeedback=$('turnstile-feedback');
+ // Public site key (not secret) is configured in registration.html. The backend checks action AND hostname.
+ const turnstileSiteKey=String(turnstileBox?.dataset.sitekey||'').trim();
+ const turnstileConfigured=/^[a-zA-Z0-9_-]{15,120}$/.test(turnstileSiteKey)&&!turnstileSiteKey.startsWith('PASTE_');
+ const turnstileAction='fmfai_registration';
+ let turnstileWidgetId=null,returnFocus=null,validationAttempted=false,errors=[];
+ function clearTurnstileToken(text){
+   turnstileResponse.value='';
+   confirm.disabled=true;
+   if(text)turnstileFeedback.textContent=text;
+ }
+ function removeTurnstileWidget(){
+   clearTurnstileToken('Verification is required before submitting.');
+   if(turnstileWidgetId!==null&&window.turnstile){
+     try{window.turnstile.remove(turnstileWidgetId)}catch(error){console.warn('Turnstile cleanup:',error)}
+   }
+   turnstileWidgetId=null;
+ }
+ function loadTurnstileApi(){
+   if(window.turnstile)return Promise.resolve(window.turnstile);
+   if(window.__FMFAI_TURNSTILE_LOADING)return window.__FMFAI_TURNSTILE_LOADING;
+   const script=document.createElement('script');
+   script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+   script.async=true;
+   window.__FMFAI_TURNSTILE_LOADING=new Promise((resolve,reject)=>{
+     script.onload=()=>window.turnstile?resolve(window.turnstile):reject(new Error('Turnstile not available'));
+     script.onerror=()=>reject(new Error('Turnstile script unavailable'));
+     document.head.append(script);
+   }).catch(error=>{window.__FMFAI_TURNSTILE_LOADING=null;script.remove();throw error;});
+   return window.__FMFAI_TURNSTILE_LOADING;
+ }
+ async function startTurnstileReview(){
+   clearTurnstileToken('Loading robot verification…');
+   if(!endpoint){turnstileFeedback.textContent='Registration is not yet available.';return;}
+   if(!turnstileConfigured){turnstileFeedback.textContent='Robot verification has not been configured by the organizers.';return;}
+   try{
+     const api=await loadTurnstileApi();
+     // Avoid rendering a widget in a review that was closed or left via page navigation.
+     if(overlay.hidden||!overlay.isConnected)return;
+     if(turnstileWidgetId!==null){try{api.remove(turnstileWidgetId)}catch(_){}turnstileWidgetId=null;}
+     turnstileWidgetId=api.render(turnstileBox,{
+       sitekey:turnstileSiteKey,action:turnstileAction,theme:'auto',
+       callback:token=>{
+         if(overlay.hidden)return;
+         turnstileResponse.value=token;
+         turnstileFeedback.textContent='Robot verification complete.';
+         confirm.disabled=false;
+       },
+       'expired-callback':()=>{
+         clearTurnstileToken('Verification expired. Please complete it again.');
+         if(turnstileWidgetId!==null){try{api.reset(turnstileWidgetId)}catch(_){}}
+       },
+       'error-callback':()=>{
+         clearTurnstileToken('Verification could not be completed. Please return to editing and try again.');
+       }
+     });
+   }catch(error){
+     clearTurnstileToken('Robot verification is unavailable. Please check your connection and try again.');
+     console.warn('Turnstile loading failed:',error);
+   }
+ }
+
  const val=id=>String($(id)?.value||'').trim();
  const invoiceValue=()=>form.querySelector('input[name="invoice"]:checked')?.value||'';
  const proformaValue=()=>$('proforma').checked?'Yes':'No';
@@ -238,13 +299,15 @@ function initRegistration(){
    if(r.comments)row('Additional comments',r.comments);
    if(!endpoint){
      message.textContent='Online registration is not yet available. You can review your details, but cannot submit them.';
-     confirm.disabled=true;
-   } else {
-     confirm.disabled=false;
    }
    overlay.hidden=false;document.body.classList.add('dialog-open');close.focus();
+   startTurnstileReview();
  }
- function hideReview(){overlay.hidden=true;document.body.classList.remove('dialog-open');returnFocus?.focus();}
+ function hideReview(removeWidget=true){
+   overlay.hidden=true;document.body.classList.remove('dialog-open');
+   if(removeWidget)removeTurnstileWidget();
+   returnFocus?.focus();
+ }
  form.addEventListener('submit',e=>{e.preventDefault();validationAttempted=true;if(validate(true))openReview();});
  close.addEventListener('click',hideReview);edit.addEventListener('click',hideReview);
  overlay.addEventListener('click',e=>{if(e.target===overlay)hideReview();});
@@ -258,15 +321,17 @@ function initRegistration(){
  });
  confirm.addEventListener('click',()=>{
    if(!endpoint){message.textContent='Registration has not been activated yet.';return;}
+   if(!turnstileResponse.value){turnstileFeedback.textContent='Please complete the robot verification.';return;}
    if(!validate(false)){hideReview();status.textContent='Please correct the highlighted fields.';return;}
    if(!$('requestId').value)$('requestId').value=globalThis.crypto?.randomUUID?.()||`fmf-${Date.now()}-${Math.random().toString(36).slice(2)}`;
    confirm.disabled=true;
-   hideReview();
+   hideReview(false); // Keep the verified token in the form for this submission.
    status.textContent='Your registration will open in a new tab. It is complete only when that tab displays “Registration received”.';
    // Standard HTML POST works on GitHub Pages without relying on cross-origin fetch/CORS.
-   // Server displays an authoritative receipt in a new tab; client never claims success early.
+   // The server validates the CAPTCHA before saving anything or sending email.
    HTMLFormElement.prototype.submit.call(form);
-   setTimeout(()=>{confirm.disabled=false;},3000);
+   // A Turnstile token is single use. Any further submission must complete a fresh challenge.
+   setTimeout(()=>{removeTurnstileWidget();},1000);
  });
 }
 

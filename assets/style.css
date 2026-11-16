@@ -759,3 +759,11 @@ body {color:var(--quiet); background:var(--paper);}
 /* Registration review: visible, non-blocking pro forma / invoice mismatch notice. */
 .review-warning{background:#fff6df;border-left:4px solid #ae7b23;padding:12px 15px;margin:10px 0 16px!important;font-size:.93rem;line-height:1.55;color:#503c18;}
 :root.high-contrast .review-warning{background:#000!important;border-color:#fff600!important;color:#fff600!important;}
+
+/* Turnstile is rendered only on the final Review Registration dialog. */
+.turnstile-section{margin:18px 0 14px;padding:16px 0 4px;border-top:1px solid #d4dfe5;}
+.turnstile-title{font-weight:750;margin:0 0 10px!important;color:#254860;}
+.turnstile-feedback{font-size:.9rem;margin:9px 0 0!important;color:#526b80;}
+#turnstile-widget{min-height:65px;max-width:100%;}
+:root.high-contrast .turnstile-section{border-color:#fff600;}
+:root.high-contrast .turnstile-title,:root.high-contrast .turnstile-feedback{color:#fff600!important;}
