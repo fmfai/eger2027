@@ -64,6 +64,15 @@ if(contrastButtons.length){
    sync();
  });
 }
+// The Privacy Notice remains available on every page, including mobile views.
+const footerRow=document.querySelector('.site-footer .footer-row');
+if(footerRow&&!footerRow.querySelector('.footer-privacy-link')){
+ const footerPrivacy=document.createElement('a');
+ footerPrivacy.className='footer-privacy-link';
+ footerPrivacy.href=new URL('privacy.html',baseUrl).href;
+ footerPrivacy.textContent='Privacy Notice';
+ footerRow.append(footerPrivacy);
+}
 function initPage(){
   initTabs();initAbstracts();initRegistration();
 }
@@ -111,6 +120,15 @@ function initRegistration(){
  const overlay=$('review-overlay'),review=$('review-rows'),message=$('review-message'),status=$('form-status');
  const confirm=$('confirm-registration'),close=$('close-review'),edit=$('edit-registration');
  const activationNotice=$('registration-activation-note');
+ // Insert a required acknowledgement, without overwriting configured Site Key in registration.html.
+ // This acknowledges receipt of information; it is not consent to the routine registration processing.
+ const privacyField=document.createElement('div');
+ privacyField.className='field full privacy-acknowledgement';
+ privacyField.innerHTML='<label class="choice" for="privacyAcknowledged"><input id="privacyAcknowledged" name="privacyAcknowledged" type="checkbox" value="Yes" required><span>I have read the <a href="privacy.html" target="_blank" rel="noopener noreferrer">Privacy Notice</a>. <span aria-hidden="true">*</span></span></label>';
+ const actions=form.querySelector('.form-actions');
+ actions.insertBefore(privacyField,actions.querySelector('.primary-button'));
+ const privacyCheckbox=privacyField.querySelector('input');
+
  const turnstileBox=$('turnstile-widget'),turnstileResponse=$('turnstile-response'),turnstileFeedback=$('turnstile-feedback');
  // Public site key (not secret) is configured in registration.html. The backend checks action AND hostname.
  const turnstileSiteKey=String(turnstileBox?.dataset.sitekey||'').trim();
@@ -254,6 +272,7 @@ function initRegistration(){
      if(!val('billingName'))setError($('billingName'),'Please enter the billing recipient.');
      if(!val('billingAddress'))setError($('billingAddress'),'Please enter the billing address.');
    }
+   if(!privacyCheckbox.checked)setError(privacyCheckbox,'Please confirm that you have read the Privacy Notice.');
    if(errors.length){
      status.textContent='Please correct the highlighted fields before continuing.';status.classList.add('error-status');
      if(focusFirst){errors[0].input.focus();errors[0].input.scrollIntoView({behavior:'smooth',block:'center'});}
@@ -294,6 +313,7 @@ function initRegistration(){
      if(r.taxNumber)row('Tax / VAT number',r.taxNumber);
      if(r.invoiceNotes)row('Invoice notes',r.invoiceNotes);
    }
+   row('Privacy Notice',privacyCheckbox.checked?'Acknowledged':'Not acknowledged');
    row('Expected meals',r.meals.length?r.meals.join('; '):'None selected');
    if(r.dietary)row('Dietary requirements',r.dietary);
    if(r.comments)row('Additional comments',r.comments);
