@@ -781,3 +781,7 @@ body {color:var(--quiet); background:var(--paper);}
 @media(max-width:600px){.footer-privacy-link{margin-left:0}}
 :root.high-contrast .privacy-status,:root.high-contrast .privacy-entity{background:#000!important;color:#fff600!important;border-color:#fff600!important}
 :root.high-contrast .privacy-acknowledgement .choice,:root.high-contrast .footer-privacy-link,:root.high-contrast .privacy-acknowledgement a,:root.high-contrast .privacy-version{color:#fff600!important}
+
+/* A disabled button must look disabled (for example Submit while the robot verification is loading). */
+.primary-button:disabled,.secondary-button:disabled {opacity:.45;cursor:not-allowed}
+.primary-button:disabled:hover {background:var(--blue-dark)}
