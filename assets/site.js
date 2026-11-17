@@ -114,7 +114,9 @@ function initAbstracts(){
 function initRegistration(){
  const form=document.getElementById('registration-form');if(!form)return;
  const cfg=window.FMFAI_CONFIG||{},configuredEndpoint=String(cfg.registrationEndpoint||'').trim();
- const endpoint=/^https:\/\/script\.google\.com\/macros\/s\/[^/?#]+\/exec(?:\?[^#]*)?$/.test(configuredEndpoint) ? configuredEndpoint : '';
+ // The registration backend is the university server that also serves this site, so the endpoint is a
+ // same-origin path (for example /api/ekke/fmfai2027_registration). Other origins are not accepted.
+ const endpoint=/^\/api\/[a-zA-Z0-9_\/-]+$/.test(configuredEndpoint) ? configuredEndpoint : '';
  const $=id=>document.getElementById(id),category=$('category'),presentation=$('presentation'),poster=$('poster');
  const presentationMirror=$('presentation-mirror'),posterMirror=$('poster-mirror');
  const overlay=$('review-overlay'),review=$('review-rows'),message=$('review-message'),status=$('form-status');
@@ -131,9 +133,20 @@ function initRegistration(){
 
  const turnstileBox=$('turnstile-widget'),turnstileResponse=$('turnstile-response'),turnstileFeedback=$('turnstile-feedback');
  // Public site key (not secret) is configured in registration.html. The backend checks action AND hostname.
- const turnstileSiteKey=String(turnstileBox?.dataset.sitekey||'').trim();
- const turnstileConfigured=/^[a-zA-Z0-9_-]{15,120}$/.test(turnstileSiteKey)&&!turnstileSiteKey.startsWith('PASTE_');
- const turnstileAction='fmfai_registration';
+ let turnstileSiteKey='',turnstileConfigured=false,turnstileAction='fmfai_registration';
+ let registrationOpen=false;
+ // GET on the endpoint returns {open, turnstileSiteKey, turnstileAction}.
+ const serviceInfo=!endpoint?Promise.resolve(null):fetch(endpoint,{credentials:'same-origin',headers:{Accept:'application/json'}})
+   .then(response=>response.ok?response.json():null)
+   .then(info=>{
+     if(!info)return null;
+     registrationOpen=info.open===true;
+     turnstileSiteKey=String(info.turnstileSiteKey||'').trim();
+     turnstileConfigured=/^[a-zA-Z0-9_-]{15,120}$/.test(turnstileSiteKey);
+     if(info.turnstileAction)turnstileAction=String(info.turnstileAction);
+     return info;
+   })
+   .catch(error=>{console.warn('Registration service unavailable:',error);return null;});
  let turnstileWidgetId=null,returnFocus=null,validationAttempted=false,errors=[];
  function clearTurnstileToken(text){
    turnstileResponse.value='';
@@ -163,6 +176,8 @@ function initRegistration(){
  async function startTurnstileReview(){
    clearTurnstileToken('Loading robot verification…');
    if(!endpoint){turnstileFeedback.textContent='Registration is not yet available.';return;}
+   await serviceInfo;
+   if(!registrationOpen){turnstileFeedback.textContent='Registration is not open.';return;}
    if(!turnstileConfigured){turnstileFeedback.textContent='Robot verification has not been configured by the organizers.';return;}
    try{
      const api=await loadTurnstileApi();
@@ -205,12 +220,15 @@ function initRegistration(){
    ['mealJan29GalaDinner','29 January — Gala dinner'],
    ['mealJan30Lunch','30 January — Lunch']
  ];
- if(endpoint) {
-   form.action=endpoint;
-   if(activationNotice)activationNotice.hidden=true;
- } else {
-   form.removeAttribute('action');
-   if(activationNotice)activationNotice.hidden=false;
+ form.removeAttribute('action');
+ if(activationNotice){
+   activationNotice.hidden=true;
+   serviceInfo.then(info=>{
+     if(!activationNotice.isConnected)return;
+     if(info&&registrationOpen)return;
+     activationNotice.textContent=info?'Registration is not open at the moment.':'Registration is temporarily unavailable.';
+     activationNotice.hidden=false;
+   });
  }
  function switchTitle(blockId,id,on){
    const block=$(blockId),input=$(id);block.hidden=!on;input.disabled=!on;input.required=on;
@@ -298,6 +316,18 @@ function initRegistration(){
      dietary:val('dietary'),comments:val('comments'),meals:meals.filter(([id])=>$(id).checked).map(([,label])=>label)
    };
  }
+ // The JSON body sent to the backend: the form fields, the meal checkboxes one by one, and the CAPTCHA token.
+ function requestBody(){
+   const r=currentRecord(),body={};
+   for(const key of ['requestId','firstName','familyName','email','institution','category','presentationTitle','posterTitle',
+     'billingName','billingAddress','taxNumber','invoiceNotes','dietary','comments'])body[key]=r[key];
+   for(const key of ['presentation','poster','invoice','proforma'])body[key]=r[key]==='Yes';
+   for(const [id] of meals)body[id]=$(id).checked;
+   body.privacyAcknowledged=privacyCheckbox.checked;
+   body.website=val('website');
+   body.turnstile_token=turnstileResponse.value;
+   return body;
+ }
  function openReview(){
    returnFocus=document.activeElement;review.replaceChildren();message.textContent='';
    const r=currentRecord();
@@ -345,14 +375,33 @@ function initRegistration(){
    if(!validate(false)){hideReview();status.textContent='Please correct the highlighted fields.';return;}
    if(!$('requestId').value)$('requestId').value=globalThis.crypto?.randomUUID?.()||`fmf-${Date.now()}-${Math.random().toString(36).slice(2)}`;
    confirm.disabled=true;
-   hideReview(false); // Keep the verified token in the form for this submission.
-   status.textContent='Your registration will open in a new tab. It is complete only when that tab displays “Registration received”.';
-   // Standard HTML POST works on GitHub Pages without relying on cross-origin fetch/CORS.
-   // The server validates the CAPTCHA before saving anything or sending email.
-   HTMLFormElement.prototype.submit.call(form);
-   // A Turnstile token is single use. Any further submission must complete a fresh challenge.
-   setTimeout(()=>{removeTurnstileWidget();},1000);
+   message.textContent='Submitting your registration…';
+   // The server validates the fields and the CAPTCHA before saving anything.
+   submitRegistration(requestBody());
  });
+ async function submitRegistration(body){
+   let response=null,data=null;
+   try{
+     response=await fetch(endpoint,{method:'POST',credentials:'same-origin',
+       headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(body)});
+     data=await response.json().catch(()=>null);
+   }catch(error){console.warn('Registration request failed:',error);}
+   if(response&&response.ok&&data&&data.status==='ok'){
+     hideReview();
+     form.reset();$('requestId').value='';validationAttempted=false;clearErrors();sync(true);
+     status.classList.remove('error-status');
+     status.textContent=(data.duplicate?'This registration was already received earlier.':'Registration received. Thank you!')
+       +' Reference: '+data.requestId;
+     status.scrollIntoView({behavior:'smooth',block:'center'});
+     return;
+   }
+   // Not saved. A Turnstile token is single use, so a new attempt needs a fresh challenge.
+   const text=data&&data.error_description?String(data.error_description)
+     :'The registration could not be saved. Please try again later or contact the organizers.';
+   message.textContent=text+' Your registration was not saved.';
+   clearTurnstileToken('Please complete the robot verification again.');
+   if(turnstileWidgetId!==null&&window.turnstile){try{window.turnstile.reset(turnstileWidgetId)}catch(_){}}
+ }
 }
 
 
