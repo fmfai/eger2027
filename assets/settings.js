@@ -1,4 +1,6 @@
-// Public configuration. Do not put private Google API keys or passwords here.
+// Public configuration. Do not put private keys or passwords here.
 window.FMFAI_CONFIG = {
-  registrationEndpoint: 'https://script.google.com/macros/s/AKfycbylC6EzBGplBBPXQJoHVKO4FQwfuUHj06XkjxTCP5OaePMqPfWfs7Dd_zO6AvD5QvUaxw/exec' // Set to the deployed Google Apps Script Web App URL ending in /exec.
+  // Same-origin path of the registration service on the university server that hosts this site.
+  // The Turnstile site key and the open/closed state come from this service.
+  registrationEndpoint: '/api/ekke/fmfai2027_registration'
 };
